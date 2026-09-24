@@ -8,7 +8,7 @@ st.set_page_config(page_title="DasAi", page_icon="🤖")
 st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
-"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"
+"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"
 
 # Client setup
 os.environ
