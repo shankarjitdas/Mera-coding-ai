@@ -8,8 +8,7 @@ st.set_page_config(page_title="DasAi", page_icon="🤖")
 st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
-# Apni Hugging Face token yahan daalein
-HF_TOKEN = "YAHAN_APNA_TOKEN_PASTE_KARO"  # <--- Yahan apna naya token quotes ke beech paste karein
+HF_TOKEN = "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"
 
 # Client setup
 os.environ["HF_TOKEN"] = HF_TOKEN
