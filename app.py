@@ -8,8 +8,8 @@ st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
 # Apni Hugging Face token yahan daalein
-HF_TOKEN = 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
-
+HF_TOKEN = "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"
+# Apni Hugging Face token yahan daalein
 # Client setup
 client = InferenceClient(
     model="Qwen/Qwen2.5-Coder-1.5B-Instruct",
