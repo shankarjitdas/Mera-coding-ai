@@ -25,7 +25,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # User ka input lo
-if prompt := st.chat_input("Kuch bhi coding sawal puchiye..."):
+if prompt := st.chat_input("Ask dasAi"):
     # User message add karo
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
