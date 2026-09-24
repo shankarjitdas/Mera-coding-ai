@@ -9,7 +9,7 @@ st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
 # Apni Hugging Face token yahan daalein
-HF_TOKEN = "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"  # <--- Apna token in quotes ke beech paste karein
+HF_TOKEN = "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"
 
 # Client setup (Yeh naya sahi tareeqa hai)
 os.environ["HF_TOKEN"] = HF_TOKEN
