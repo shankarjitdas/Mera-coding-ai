@@ -8,7 +8,7 @@ st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
 # Apni Hugging Face token yahan daalein
-HF_TOKEN = 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  # <--- Iske beech mein apna copy kiya hua token paste kar dena
+HF_TOKEN = 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
 
 # Client setup
 client = InferenceClient(
