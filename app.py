@@ -1,18 +1,20 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
-import os
 
 # Page configuration
 st.set_page_config(page_title="DasAi", page_icon="🤖")
 
 st.title("🤖 DasAi - Coding Assistant")
-st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
+st.write("Aapka apna AI assistant, DasAi!")
 
-"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"
+# Token Streamlit Secrets se aayega — code mein KABHI nahi likhna
+HF_TOKEN = st.secrets["HF_TOKEN"]
 
 # Client setup
-os.environ
-client = InferenceClient(model="Qwen/Qwen2.5-Coder-1.5B-Instruct")
+client = InferenceClient(
+    model="Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    token=HF_TOKEN
+)
 
 # Chat history initialize karo
 if "messages" not in st.session_state:
@@ -41,10 +43,9 @@ if prompt := st.chat_input("Ask DasAi..."):
             )
             bot_reply = response.choices[0].message.content
             message_placeholder.markdown(bot_reply)
-            
+
             # Assistant response add karo
             st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         except Exception as e:
             error_msg = f"Error: {e}. Kripya apna token check karein."
             message_placeholder.markdown(error_msg)
-            
