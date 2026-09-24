@@ -8,7 +8,7 @@ st.set_page_config(page_title="DasAi", page_icon="🤖")
 st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
-HF_TOKEN = "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"
+HF_TOKEN = "aiqcpWLhRPTvlSDvllYlmBAtcoTzQrFBWb"
 
 # Client setup
 os.environ["HF_TOKEN"] = HF_TOKEN
