@@ -9,9 +9,9 @@ st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
 # Apni Hugging Face token yahan daalein
-HF_TOKEN = "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"
+HF_TOKEN = "YAHAN_APNA_TOKEN_PASTE_KARO"  # <--- Yahan apna naya token quotes ke beech paste karein
 
-# Client setup (Yeh naya sahi tareeqa hai)
+# Client setup
 os.environ["HF_TOKEN"] = HF_TOKEN
 client = InferenceClient(model="Qwen/Qwen2.5-Coder-1.5B-Instruct")
 
@@ -25,7 +25,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # User ka input lo
-if prompt := st.chat_input("Ask dasAi"):
+if prompt := st.chat_input("Ask DasAi..."):
     # User message add karo
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
