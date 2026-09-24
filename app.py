@@ -8,7 +8,7 @@ st.title("🤖 DasAi - Coding Assistant")
 st.write("Aapka apna AI assistant, DasAi!")
 
 # Token Streamlit Secrets se aayega — code mein KABHI nahi likhna
-HF_TOKEN = st.secrets["HF_TOKEN"]
+HF_TOKEN = st.secrets["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"]
 
 # Client setup
 client = InferenceClient(
