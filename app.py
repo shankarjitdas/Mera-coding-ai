@@ -1,6 +1,6 @@
 """
 DasAI - Coding Assistant
-A Streamlit-based AI chat application powered by Qwen2.5-Coder-1.5B-Instruct
+A Streamlit-based AI chat application powered by Qwen2.5-Coder-32B-Instruct
 via the Hugging Face Inference API.
 """
 
@@ -10,7 +10,7 @@ from huggingface_hub import InferenceClient
 # ------------------------------------------------------------------
 # CONFIGURATION
 # ------------------------------------------------------------------
-MODEL_NAME = "Qwen/Qwen2.5-Coder-32B-Instruct""
+MODEL_NAME = "Qwen/Qwen2.5-Coder-32B-Instruct"
 
 SYSTEM_PROMPT = (
     "You are an expert AI programming assistant with deep knowledge of "
