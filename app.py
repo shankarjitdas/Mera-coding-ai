@@ -30,8 +30,8 @@ if prompt := st.chat_input("Ask DasAi... (Coding related sawal puchein)"):
 
   with st.chat_message("assistant"):
     try:
-      # Sahi aur updated latest flash model name
-      model = genai.GenerativeModel("gemini-2.5-flash")
+      # Google ke naye instruction ke mutabiq gemini-3.8-flash use kiya gaya hai
+      model = genai.GenerativeModel("gemini-3.8-flash")
 
       response = model.generate_content(prompt)
       assistant_response = response.text
