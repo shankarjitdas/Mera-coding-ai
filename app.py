@@ -30,8 +30,8 @@ if prompt := st.chat_input("Ask DasAi... (Coding related sawal puchein)"):
 
   with st.chat_message("assistant"):
     try:
-      # Yahan gemini-pro use kiya gaya hai jo har jagah support hota hai
-      model = genai.GenerativeModel("gemini-pro")
+      # Yahan hum sabse latest aur stable model use kar rahe hain
+      model = genai.GenerativeModel("gemini-1.5-flash")
 
       response = model.generate_content(prompt)
       assistant_response = response.text
