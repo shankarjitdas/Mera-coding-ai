@@ -3,7 +3,7 @@ import streamlit as st
 
 # Page Configuration & Layout
 st.set_page_config(
-    page_title="DasAi - Professional AI Assistant",
+    page_title="DasAi - Advanced AI Assistant",
     page_icon="⚡",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -52,17 +52,12 @@ if "messages" not in st.session_state:
 # ================= SIDEBAR (3-Line Menu & Chat History) =================
 with st.sidebar:
   st.title("📁 Chat History")
-  st.write(
-      "Aapki purani baatcheet yahan save rahegi. Aap yahan se apne pichle"
-      " sawal dekh sakte hain."
-  )
+  st.write("Aapki purani baatcheet yahan safe hai.")
   st.divider()
 
-  # Display past queries in the sidebar
   if st.session_state.messages:
     for i, message in enumerate(st.session_state.messages):
       if message["role"] == "user":
-        # Sidebar mein user ke sawal dikhane ke liye
         st.markdown(f"💬 **Q{i+1}:** {message['content'][:30]}...")
   else:
     st.info("Abhi koi chat history nahi hai.")
@@ -75,8 +70,8 @@ with st.sidebar:
 # ================= MAIN CHAT INTERFACE =================
 st.markdown('<p class="main-title">⚡ DasAi Intelligence</p>', unsafe_allow_html=True)
 st.markdown(
-    '<p class="sub-title">Your high-performance universal assistant for'
-    " software development, research, and general problem solving.</p>",
+    '<p class="sub-title">Your next-generation AI companion, powered with'
+    " advanced intelligence for coding, analysis, and daily chats.</p>",
     unsafe_allow_html=True,
 )
 
@@ -86,9 +81,7 @@ for message in st.session_state.messages:
     st.markdown(message["content"])
 
 # Capture User Input
-if prompt := st.chat_input(
-    "Type your message, code query, or question here..."
-):
+if prompt := st.chat_input("Ask me anything or paste your code here..."):
   # Append and display user message
   st.session_state.messages.append({"role": "user", "content": prompt})
   with st.chat_message("user"):
@@ -96,19 +89,25 @@ if prompt := st.chat_input(
 
   # Generate Assistant Response
   with st.chat_message("assistant"):
-    with st.spinner("Processing request..."):
+    with st.spinner("Thinking..."):
       try:
         # Initialize Gemini Model
         model = genai.GenerativeModel("gemini-3.8-flash")
 
-        # Professional System Instructions for Universal Capabilities
+        # World-Class Ultra-Intelligent & Friendly System Prompt (Claude/ChatGPT Style)
         system_prompt = (
-            "You are DasAi, an advanced, highly competent, and professional"
-            " AI assistant. You excel across multiple domains including"
-            " software engineering, technical analysis, general knowledge,"
-            " factual inquiries, and creative tasks. Always deliver accurate,"
-            " well-structured, clear, and professional responses in English."
-            f"\n\nUser Query: {prompt}"
+            "You are DasAi, a world-class, ultra-intelligent, friendly, and"
+            " highly capable AI companion and expert software engineer. You"
+            " combine the depth and precision of top models like Claude and"
+            " ChatGPT with lightning-fast processing.\n\nYour core"
+            " traits:\n1. **Expert Coding & Logic:** Provide clean,"
+            " production-ready code, bug fixes, and architectural advice across"
+            " all programming languages.\n2. **Engaging & Friendly:** Maintain"
+            " a warm, conversational, polite, and encouraging tone.\n3."
+            " **Clarity & Depth:** Give well-structured, easy-to-read, accurate,"
+            " and comprehensive answers.\n4. **Context Aware:** Understand user"
+            " intent instantly and respond professionally in English.\n\nUser"
+            f" Message: {prompt}"
         )
 
         # Generate Content
@@ -122,8 +121,5 @@ if prompt := st.chat_input(
         )
 
       except Exception as e:
-        st.error(
-            "⚠️ An error occurred while generating the response. Please check"
-            f" your API configuration or network connection. Details: {e}"
-        )
+        st.error(f"⚠️ Error generating response: {e}")
           
