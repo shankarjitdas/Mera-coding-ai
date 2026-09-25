@@ -30,15 +30,9 @@ if prompt := st.chat_input("Ask DasAi... (Coding related sawal puchein)"):
 
   with st.chat_message("assistant"):
     try:
-      # Automatically available model select karega
-      model_to_use = "gemini-1.5-flash"
-      for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-          if "1.5-flash" in m.name:
-            model_to_use = m.name
-            break
+      # Yahan gemini-pro use kiya gaya hai jo har jagah support hota hai
+      model = genai.GenerativeModel("gemini-pro")
 
-      model = genai.GenerativeModel(model_to_use)
       response = model.generate_content(prompt)
       assistant_response = response.text
 
