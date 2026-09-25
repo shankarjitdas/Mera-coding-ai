@@ -16,7 +16,7 @@ except Exception as e:
   st.error("Kripya Streamlit Secrets mein 'GEMINI_API_KEY' add karein.")
 
 if "gemini_model" not in st.session_state:
-  st.session_state["gemini_model"] = "gemini-1.5-flash"
+  st.session_state["gemini_model"] = "models/gemini-1.5-flash"
 
 if "messages" not in st.session_state:
   st.session_state.messages = []
