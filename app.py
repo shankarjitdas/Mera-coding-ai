@@ -9,7 +9,7 @@ st.write("Aapka apna AI assistant, jo bina kisi memory limit ke fast chalega!")
 
 # Token Streamlit Secrets se aayega — code mein KABHI nahi likhna
 HF_TOKEN = "st.secrets["HF_TOKEN"]
-"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"
+
 # Client setup
 client = InferenceClient(
     model="Qwen/Qwen2.5-Coder-1.5B-Instruct",
