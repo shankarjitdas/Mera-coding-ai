@@ -9,10 +9,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Custom Styling for Professional Look
-st.markdown(
-    """
+# Custom CSS to Hide Streamlit Default Header/Footer & Style Sidebar
+hide_streamlit_style = """
     <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stAppDeployButton {display:none;}
     .main-title {
         font-size: 2.2rem;
         font-weight: 700;
@@ -25,17 +28,8 @@ st.markdown(
         margin-bottom: 2rem;
     }
     </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# Professional Header Section
-st.markdown('<p class="main-title">⚡ DasAi Intelligence</p>', unsafe_allow_html=True)
-st.markdown(
-    '<p class="sub-title">Your high-performance universal assistant for'
-    " software development, research, and general problem solving.</p>",
-    unsafe_allow_html=True,
-)
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Configure Gemini API securely via Streamlit Secrets
 try:
@@ -55,7 +49,38 @@ except Exception as e:
 if "messages" not in st.session_state:
   st.session_state.messages = []
 
-# Render Prior Chat Messages from History
+# ================= SIDEBAR (3-Line Menu & Chat History) =================
+with st.sidebar:
+  st.title("📁 Chat History")
+  st.write(
+      "Aapki purani baatcheet yahan save rahegi. Aap yahan se apne pichle"
+      " sawal dekh sakte hain."
+  )
+  st.divider()
+
+  # Display past queries in the sidebar
+  if st.session_state.messages:
+    for i, message in enumerate(st.session_state.messages):
+      if message["role"] == "user":
+        # Sidebar mein user ke sawal dikhane ke liye
+        st.markdown(f"💬 **Q{i+1}:** {message['content'][:30]}...")
+  else:
+    st.info("Abhi koi chat history nahi hai.")
+
+  st.divider()
+  if st.button("Clear History / New Chat"):
+    st.session_state.messages = []
+    st.rerun()
+
+# ================= MAIN CHAT INTERFACE =================
+st.markdown('<p class="main-title">⚡ DasAi Intelligence</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="sub-title">Your high-performance universal assistant for'
+    " software development, research, and general problem solving.</p>",
+    unsafe_allow_html=True,
+)
+
+# Render Prior Chat Messages from History in Main Screen
 for message in st.session_state.messages:
   with st.chat_message(message["role"]):
     st.markdown(message["content"])
