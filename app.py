@@ -1,69 +1,104 @@
 import google.generativeai as genai
 import streamlit as st
 
-# Page Configuration
+# Page Configuration & Layout
 st.set_page_config(
-    page_title="DasAi - Professional Coding Assistant",
-    page_icon="💻",
+    page_title="DasAi - Professional AI Assistant",
+    page_icon="⚡",
     layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
-# Professional Header & Description
-st.title("💻 DasAi: Advanced AI Coding Assistant")
+# Custom Styling for Professional Look
 st.markdown(
-    "*Your reliable AI pair programmer for multi-language software development,"
-    " debugging, and optimization.*"
+    """
+    <style>
+    .main-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin-bottom: 0rem;
+    }
+    .sub-title {
+        font-size: 1.05rem;
+        color: #475569;
+        margin-bottom: 2rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-# Configure Gemini API
-try:
-  api_key = st.secrets["GEMINI_API_KEY"]
-  genai.configure(api_key=api_key)
-except Exception as e:
-  st.error(
-      "Configuration Error: Please add your 'GEMINI_API_KEY' to Streamlit"
-      " Secrets."
-  )
+# Professional Header Section
+st.markdown('<p class="main-title">⚡ DasAi Intelligence</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="sub-title">Your high-performance universal assistant for'
+    " software development, research, and general problem solving.</p>",
+    unsafe_allow_html=True,
+)
 
-# Initialize Chat History
+# Configure Gemini API securely via Streamlit Secrets
+try:
+  if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+  else:
+    st.error(
+        "⚠️ Configuration Error: 'GEMINI_API_KEY' is missing from your"
+        " Streamlit Secrets."
+    )
+    st.stop()
+except Exception as e:
+  st.error(f"⚠️ Initialization Error: {e}")
+  st.stop()
+
+# Initialize Chat Session History
 if "messages" not in st.session_state:
   st.session_state.messages = []
 
-# Display Prior Chat Messages
+# Render Prior Chat Messages from History
 for message in st.session_state.messages:
   with st.chat_message(message["role"]):
     st.markdown(message["content"])
 
-# User Input Handling
-if prompt := st.chat_input("Ask any programming or software engineering question..."
+# Capture User Input
+if prompt := st.chat_input(
+    "Type your message, code query, or question here..."
 ):
+  # Append and display user message
   st.session_state.messages.append({"role": "user", "content": prompt})
   with st.chat_message("user"):
     st.markdown(prompt)
 
+  # Generate Assistant Response
   with st.chat_message("assistant"):
-    try:
-      # Initialize Model
-      model = genai.GenerativeModel("gemini-3.8-flash")
+    with st.spinner("Processing request..."):
+      try:
+        # Initialize Gemini Model
+        model = genai.GenerativeModel("gemini-3.8-flash")
 
-      # Professional Developer System Instructions & Context
-      system_prompt = (
-          "You are DasAi, an expert AI software engineer and coding"
-          " assistant. Your objective is to provide clean, production-ready,"
-          " and well-commented code solutions accompanied by clear, concise"
-          " technical explanations.\n\nUser Inquiry: "
-          f"{prompt}"
-      )
+        # Professional System Instructions for Universal Capabilities
+        system_prompt = (
+            "You are DasAi, an advanced, highly competent, and professional"
+            " AI assistant. You excel across multiple domains including"
+            " software engineering, technical analysis, general knowledge,"
+            " factual inquiries, and creative tasks. Always deliver accurate,"
+            " well-structured, clear, and professional responses in English."
+            f"\n\nUser Query: {prompt}"
+        )
 
-      # Generate Response
-      response = model.generate_content(system_prompt)
-      assistant_response = response.text
+        # Generate Content
+        response = model.generate_content(system_prompt)
+        assistant_response = response.text
 
-      st.markdown(assistant_response)
-      st.session_state.messages.append(
-          {"role": "assistant", "content": assistant_response}
-      )
+        # Display and Store Assistant Response
+        st.markdown(assistant_response)
+        st.session_state.messages.append(
+            {"role": "assistant", "content": assistant_response}
+        )
 
-    except Exception as e:
-      st.error(f"An error occurred: {e}")
-        
+      except Exception as e:
+        st.error(
+            "⚠️ An error occurred while generating the response. Please check"
+            f" your API configuration or network connection. Details: {e}"
+        )
+          
