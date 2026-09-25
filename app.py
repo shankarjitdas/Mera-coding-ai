@@ -30,9 +30,17 @@ if prompt := st.chat_input("Ask DasAi... (Coding related sawal puchein)"):
 
   with st.chat_message("assistant"):
     try:
-      # Yahan hum sabse latest aur stable model use kar rahe hain
-      model = genai.GenerativeModel("gemini-1.5-flash")
+      # Yeh loop aapki key ke hisab se jo bhi model available hoga use dhoond lega
+      available_model = None
+      for m in genai.list_models():
+        if "generateContent" in m.supported_generation_methods:
+          available_model = m.name
+          break
 
+      if not available_model:
+        available_model = "gemini-pro"
+
+      model = genai.GenerativeModel(available_model)
       response = model.generate_content(prompt)
       assistant_response = response.text
 
