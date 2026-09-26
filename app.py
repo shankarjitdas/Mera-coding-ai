@@ -110,7 +110,7 @@ if "logged_in" not in st.session_state:
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 
-# 4. Authentication Flow (No external heavy imports needed)
+# 4. Authentication Flow (Fixed with st.form for smooth input submission)
 if not st.session_state.logged_in:
     st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Login</p>', unsafe_allow_html=True)
@@ -121,35 +121,43 @@ if not st.session_state.logged_in:
         
         if auth_mode == "Login":
             st.subheader("🔐 Account Login")
-            login_email = st.text_input("Email Address")
-            login_pass = st.text_input("Password", type="password")
-            if st.button("Login to DasAi", use_container_width=True):
-                user = verify_user(login_email, login_pass)
-                if user:
-                    st.session_state.logged_in = True
-                    st.session_state.user_email = login_email
-                    log_activity(login_email, "Logged In via Email")
-                    st.success("Login Successful!")
-                    st.rerun()
-                else:
-                    st.error("Invalid Email or Password!")
+            with st.form("login_form"):
+                login_email = st.text_input("Email Address")
+                login_pass = st.text_input("Password", type="password")
+                submitted = st.form_submit_button("Login to DasAi", use_container_width=True)
+                
+                if submitted:
+                    if login_email and login_pass:
+                        user = verify_user(login_email, login_pass)
+                        if user:
+                            st.session_state.logged_in = True
+                            st.session_state.user_email = login_email
+                            log_activity(login_email, "Logged In via Email")
+                            st.success("Login Successful!")
+                            st.rerun()
+                        else:
+                            st.error("Invalid Email or Password!")
+                    else:
+                        st.warning("Kripya Email aur Password dono bharein!")
                     
         else:
             st.subheader("📝 Create New Account")
-            reg_name = st.text_input("Full Name")
-            reg_email = st.text_input("Email Address")
-            reg_mobile = st.text_input("Mobile Number")
-            reg_pass = st.text_input("Choose Password", type="password")
-            
-            if st.button("Register Account", use_container_width=True):
-                if reg_name and reg_email and reg_mobile and reg_pass:
-                    success = register_user(reg_name, reg_email, reg_mobile, reg_pass)
-                    if success:
-                        st.success("Account created successfully! Please switch to Login.")
+            with st.form("register_form"):
+                reg_name = st.text_input("Full Name")
+                reg_email = st.text_input("Email Address")
+                reg_mobile = st.text_input("Mobile Number")
+                reg_pass = st.text_input("Choose Password", type="password")
+                reg_submitted = st.form_submit_button("Register Account", use_container_width=True)
+                
+                if reg_submitted:
+                    if reg_name and reg_email and reg_mobile and reg_pass:
+                        success = register_user(reg_name, reg_email, reg_mobile, reg_pass)
+                        if success:
+                            st.success("Account created successfully! Please switch to Login tab.")
+                        else:
+                            st.error("Email already exists!")
                     else:
-                        st.error("Email already exists!")
-                else:
-                    st.warning("Please fill all the details!")
+                        st.warning("Please fill all the details!")
     st.stop()
 
 # 5. Main App Dashboard (Accessible Only After Login)
