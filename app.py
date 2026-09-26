@@ -43,6 +43,17 @@ st.markdown(
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border-left: 4px solid #3B82F6;
     }
+    .google-btn {
+        background-color: white;
+        color: black;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        width: 100%;
+        cursor: pointer;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -52,22 +63,19 @@ st.markdown(
 def init_db():
     conn = sqlite3.connect("dasai_saas.db")
     c = conn.cursor()
-    # Users table
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             email TEXT UNIQUE,
             mobile TEXT,
-            username TEXT UNIQUE,
             password TEXT
         )
     ''')
-    # Activity logs table
     c.execute('''
         CREATE TABLE IF NOT EXISTS activity_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
+            email TEXT,
             action TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -80,85 +88,109 @@ init_db()
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def register_user(name, email, mobile, username, password):
+def register_user(name, email, mobile, password):
     try:
         conn = sqlite3.connect("dasai_saas.db")
         c = conn.cursor()
-        c.execute("INSERT INTO users (name, email, mobile, username, password) VALUES (?, ?, ?, ?, ?)",
-                  (name, email, mobile, username, hash_password(password)))
+        c.execute("INSERT INTO users (name, email, mobile, password) VALUES (?, ?, ?, ?)",
+                  (name, email, mobile, hash_password(password)))
         conn.commit()
         conn.close()
         return True
     except Exception:
         return False
 
-def verify_user(username, password):
+def verify_user(email, password):
     conn = sqlite3.connect("dasai_saas.db")
     c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hash_password(password)))
+    c.execute("SELECT * FROM users WHERE email = ? AND password = ?", (email, hash_password(password)))
     user = c.fetchone()
     conn.close()
     return user
 
-def log_activity(username, action):
+def google_login_user(email, name):
     conn = sqlite3.connect("dasai_saas.db")
     c = conn.cursor()
-    c.execute("INSERT INTO activity_logs (username, action) VALUES (?, ?)", (username, action))
+    c.execute("SELECT * FROM users WHERE email = ?", (email,))
+    user = c.fetchone()
+    if not user:
+        c.execute("INSERT INTO users (name, email, mobile, password) VALUES (?, ?, ?, ?)",
+                  (name, email, "N/A", hash_password("GOOGLE_AUTH_PASS")))
+        conn.commit()
+    conn.close()
+
+def log_activity(email, action):
+    conn = sqlite3.connect("dasai_saas.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO activity_logs (email, action) VALUES (?, ?)", (email, action))
     conn.commit()
     conn.close()
 
 # 3. Session State for Login Tracking
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
+if "user_email" not in st.session_state:
+    st.session_state.user_email = ""
 
-# 4. Authentication Flow (Login / Signup Screen)
+# 4. Authentication Flow (Login / Signup Screen with Email & Google Option)
 if not st.session_state.logged_in:
     st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Please Login or Register</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Login via Email or Google</p>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        # Google Login Simulation Button
+        if st.button("🌐 Continue with Google Account", use_container_width=True):
+            # Simulated Google Quick-Auth for seamless onboarding
+            g_email = "user_google@gmail.com"
+            g_name = "Google User"
+            google_login_user(g_email, g_name)
+            st.session_state.logged_in = True
+            st.session_state.user_email = g_email
+            log_activity(g_email, "Logged In via Google")
+            st.success("Google Login Successful!")
+            st.rerun()
+
+        st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+        
         auth_mode = st.radio("Choose Action", ["Login", "Register"], horizontal=True)
         
         if auth_mode == "Login":
-            st.subheader("🔐 User Login")
-            login_user = st.text_input("Username")
+            st.subheader("🔐 Email Login")
+            login_email = st.text_input("Email Address")
             login_pass = st.text_input("Password", type="password")
             if st.button("Login to DasAi", use_container_width=True):
-                user = verify_user(login_user, login_pass)
+                user = verify_user(login_email, login_pass)
                 if user:
                     st.session_state.logged_in = True
-                    st.session_state.username = login_user
-                    log_activity(login_user, "Logged In")
+                    st.session_state.user_email = login_email
+                    log_activity(login_email, "Logged In via Email")
                     st.success("Login Successful!")
                     st.rerun()
                 else:
-                    st.error("Invalid Username or Password!")
+                    st.error("Invalid Email or Password!")
                     
         else:
             st.subheader("📝 Create New Account")
             reg_name = st.text_input("Full Name")
             reg_email = st.text_input("Email Address")
             reg_mobile = st.text_input("Mobile Number")
-            reg_user = st.text_input("Choose Username")
             reg_pass = st.text_input("Choose Password", type="password")
             
             if st.button("Register Account", use_container_width=True):
-                if reg_name and reg_email and reg_mobile and reg_user and reg_pass:
-                    success = register_user(reg_name, reg_email, reg_mobile, reg_user, reg_pass)
+                if reg_name and reg_email and reg_mobile and reg_pass:
+                    success = register_user(reg_name, reg_email, reg_mobile, reg_pass)
                     if success:
                         st.success("Account created successfully! Please switch to Login.")
                     else:
-                        st.error("Username or Email already exists!")
+                        st.error("Email already exists!")
                 else:
                     st.warning("Please fill all the details!")
     st.stop()
 
 # 5. Main App Dashboard (Accessible Only After Login)
 with st.sidebar:
-    st.markdown(f"## 👤 Welcome, {st.session_state.username}")
+    st.markdown(f"## 👤 Welcome, {st.session_state.user_email}")
     st.markdown("---")
     st.markdown("## ⚙️ DasAi SaaS Control")
     
@@ -208,12 +240,12 @@ with st.sidebar:
     st.markdown("---")
     
     # Admin Control Panel Section to view users
-    if st.session_state.username in ["admin", "root"]: # Aap apna username yahan admin bana sakte hain
+    if st.session_state.user_email in ["admin@gmail.com", "root@gmail.com"]: # Apni admin email yahan daal sakte hain
         if st.checkbox("👑 Open Admin Control Panel"):
             st.markdown("### 📊 Active Users & Logs")
             conn = sqlite3.connect("dasai_saas.db")
             c = conn.cursor()
-            c.execute("SELECT name, email, mobile, username FROM users")
+            c.execute("SELECT name, email, mobile FROM users")
             all_users = c.fetchall()
             st.write(f"**Total Registered Users:** {len(all_users)}")
             for u in all_users:
@@ -225,13 +257,13 @@ with st.sidebar:
         st.rerun()
 
     if st.button("🚪 Logout", use_container_width=True):
-        log_activity(st.session_state.username, "Logged Out")
+        log_activity(st.session_state.user_email, "Logged Out")
         st.session_state.logged_in = False
-        st.session_state.username = ""
+        st.session_state.user_email = ""
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi SaaS Platform v3.0")
+    st.caption("🚀 DasAi SaaS Platform v3.1")
 
 # Header
 st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
@@ -266,7 +298,7 @@ if prompt := st.chat_input("Ask DasAi..."):
                 active_model = "gemini-3.8-flash"
 
         st.info(f"🟢 **Active Engine:** {active_provider} (`{active_model}`)")
-        log_activity(st.session_state.username, f"Queried: {prompt[:30]}...")
+        log_activity(st.session_state.user_email, f"Queried: {prompt[:30]}...")
 
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
