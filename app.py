@@ -76,7 +76,6 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    # Table to store platform configurations like UPI gateway, etc.
     c.execute('''
         CREATE TABLE IF NOT EXISTS platform_settings (
             key TEXT PRIMARY KEY,
@@ -86,7 +85,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-    # Automatically grant Admin privileges to the specified master email
     conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
     c.execute("UPDATE users SET is_admin = 1 WHERE email = 'shankarjitdas2@gmail.com'")
@@ -299,7 +297,6 @@ with st.sidebar:
     else:
         system_prompt = "You are DasAi, an advanced multi-domain AI assistant designed to deliver high-intelligence professional answers."
 
-    # Show saved UPI Status in sidebar if configured
     saved_upi = get_setting("upi_id", "")
     if saved_upi:
         st.markdown("---")
@@ -320,7 +317,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Intelligence Core v4.7")
+    st.caption("🚀 DasAi Intelligence Core v4.8")
 
 # App Header & Main Views
 st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
@@ -333,13 +330,11 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Smart Chat Input with Dynamic Setting & UPI Gateway Control
 if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'switch to claude', 'set upi id to myname@okaxis')..."):
     cmd_lower = prompt.lower()
     setting_changed = False
     response_msg = ""
 
-    # 1. Engine Switch Commands
     if "claude" in cmd_lower:
         st.session_state.current_engine = "Anthropic Claude 3.5 Sonnet"
         setting_changed = True
@@ -353,7 +348,6 @@ if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'swi
         setting_changed = True
         response_msg = "✅ Intelligence Engine successfully switched to **Google Gemini Flash / Pro** via chat command!"
 
-    # 2. Persona Switch Commands
     elif "coding mode" in cmd_lower or "coding expert" in cmd_lower:
         st.session_state.current_persona = "Master Coding Expert (Full-Stack & Debugging)"
         setting_changed = True
@@ -367,7 +361,6 @@ if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'swi
         setting_changed = True
         response_msg = "✅ AI Mode successfully switched to **Enterprise Business Consultant** via chat command!"
 
-    # 3. UPI Gateway Setting Command (e.g., "set upi id to name@paytm")
     elif "upi" in cmd_lower and ("set" in cmd_lower or "to" in cmd_lower):
         words = prompt.split()
         target_upi = next((w for w in words if "@" in w), None)
@@ -379,10 +372,8 @@ if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'swi
             setting_changed = True
             response_msg = "⚠️ Please provide a valid UPI ID format containing '@' (e.g., `set upi id to shankar@okaxis`)."
 
-    # 4. Generate UPI Payment QR / Link Command (e.g., "pay 500 rupees")
     elif "pay" in cmd_lower or "payment" in cmd_lower or "qr" in cmd_lower:
-        current_upi = get_setting("upi_id", "shankar@okhdfcbank") # Default fallback if not set
-        # Extract amount if mentioned
+        current_upi = get_setting("upi_id", "shankar@okhdfcbank")
         import re
         amounts = re.findall(r'\d+', prompt)
         amount = amounts[0] if amounts else "100"
@@ -402,7 +393,6 @@ if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'swi
         st.session_state.messages.append({"role": "assistant", "content": response_msg})
         st.rerun()
 
-    # Regular AI Processing Flow
     if not api_key:
         st.error("Please provide a valid API key in the sidebar to activate the intelligence engine!")
     else:
@@ -419,7 +409,7 @@ if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'swi
                     
                     if "Gemini" in active_engine:
                         genai.configure(api_key=api_key)
-                        model = genai.GenerativeModel(model_name="gemini-2.5-flash", system_instruction=system_prompt)
+                        model = genai.GenerativeModel(model_name="gemini-3.8-flash", system_instruction=system_prompt)
                         history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
                         chat = model.start_chat(history=history)
                         response = chat.send_message(prompt)
