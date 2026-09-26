@@ -3,7 +3,7 @@ import openai
 import streamlit as st
 import anthropic
 
-# 1. Page Configuration & Enterprise Styling
+# 1. Page Configuration & Enterprise Styling with RGB Color Animation
 st.set_page_config(
     page_title="DasAi - Professional SaaS AI Agent",
     page_icon="⚡",
@@ -11,14 +11,26 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom High-End SaaS UI Styling
+# Custom High-End SaaS UI Styling with RGB Auto-Color Animation
 st.markdown(
     """
     <style>
+    @keyframes rgbGlow {
+        0% { color: #EF4444; }     /* Red */
+        33% { color: #3B82F6; }    /* Blue */
+        66% { color: #10B981; }    /* Green */
+        100% { color: #EF4444; }   /* Red */
+    }
+    @keyframes rgbBorder {
+        0% { border-color: #EF4444; }
+        33% { border-color: #3B82F6; }
+        66% { border-color: #10B981; }
+        100% { border-color: #EF4444; }
+    }
     .main-header {
-        font-size: 2.5rem;
+        font-size: 3rem;
         font-weight: 800;
-        color: #1E3A8A;
+        animation: rgbGlow 6s infinite;
         margin-bottom: 0px;
     }
     .sub-header {
@@ -31,6 +43,7 @@ st.markdown(
         border-radius: 14px;
         margin-bottom: 12px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        border-left: 4px solid #3B82F6;
     }
     .stSidebar {
         background-color: #F9FAFB;
@@ -40,7 +53,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Control Center (Clean Professional Layout)
+# 2. Sidebar Control Center
 with st.sidebar:
   st.markdown("## ⚙️ DasAi SaaS Control")
   st.markdown("---")
@@ -111,9 +124,9 @@ with st.sidebar:
   st.markdown("---")
   st.caption("🚀 DasAi SaaS Platform v2.0")
 
-# 3. Main SaaS Header
+# 3. Main SaaS Header (Simplified to DasAi with RGB Animation)
 st.markdown(
-    '<p class="main-header">⚡ DasAi Professional SaaS Agent</p>',
+    '<p class="main-header">⚡ DasAi</p>',
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -144,10 +157,8 @@ for message in st.session_state.messages:
   with st.chat_message(message["role"]):
     st.markdown(message["content"])
 
-# 6. Main Interaction Loop with Active Model Indicator & Smart Routing
-if prompt := st.chat_input(
-    "Apna coding task, bug fix, SaaS architecture, ya query yahan type karein..."
-):
+# 6. Main Interaction Loop with "Ask DasAi..." Placeholder & Smart Routing
+if prompt := st.chat_input("Ask DasAi..."):
   if not api_key:
     st.error(f"Kripya pehle sidebar mein API key provide karein!")
   else:
