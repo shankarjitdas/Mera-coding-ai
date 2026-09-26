@@ -7,7 +7,7 @@ import anthropic
 # 1. Page Configuration & Enterprise Styling
 st.set_page_config(
     page_title="DasAi - Professional SaaS AI Agent",
-    page_icon="⚡",  # Professional SaaS Icon
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -41,21 +41,32 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Control Center (Multi-AI & Utilities)
+# 2. Sidebar Control Center (Multi-AI & Smart Router)
 with st.sidebar:
   st.markdown("## ⚙️ DasAi SaaS Control")
   st.markdown("---")
 
-  # Select AI Engine
+  # Select AI Engine including Auto-Select option
   ai_provider = st.selectbox(
       "Select AI Provider",
-      ["Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
+      ["Auto-Select (Smart AI)", "Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
+      help="Auto-Select aapke task ke mutabiq sabse best model khud chun lega."
   )
 
   api_key = None
   selected_model = ""
 
-  if ai_provider == "Google Gemini":
+  if ai_provider == "Auto-Select (Smart AI)":
+    st.info("💡 Smart Router active hai! Yeh coding ke liye Pro aur normal chat ke liye Flash model automatically use karega.")
+    # Auto-Select ke liye primary key Gemini ki uthayenge (default free/fast execution)
+    try:
+      api_key = st.secrets.get("GEMINI_API_KEY")
+    except Exception:
+      pass
+    if not api_key:
+      api_key = st.text_input("Enter Gemini API Key (For Smart Router):", type="password")
+
+  elif ai_provider == "Google Gemini":
     try:
       api_key = st.secrets.get("GEMINI_API_KEY")
     except Exception:
@@ -130,7 +141,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<p class="sub-header">Your Enterprise-grade AI powerhouse for multi-language coding, software architecture, automated workflows, and digital business scaling.</p>',
+    '<p class="sub-header">Your Enterprise-grade AI powerhouse with Smart Auto-Routing and Multi-Model support.</p>',
     unsafe_allow_html=True,
 )
 
@@ -157,30 +168,45 @@ for message in st.session_state.messages:
   with st.chat_message(message["role"]):
     st.markdown(message["content"])
 
-# 6. Main Interaction Loop
+# 6. Main Interaction Loop with Active Model Indicator & Smart Routing
 if prompt := st.chat_input(
-    "Apna coding task, bug fix, SaaS architecture, ya business query yahan"
-    " type karein..."
+    "Apna coding task, bug fix, SaaS architecture, ya query yahan type karein..."
 ):
   if not api_key:
-    st.error(
-        f"Kripya pehle sidebar mein {ai_provider} ki API key provide karein!"
-    )
+    st.error(f"Kripya pehle sidebar mein API key provide karein!")
   else:
+    # Determine Active Provider & Model (Smart Routing Logic)
+    active_provider = ai_provider
+    active_model = selected_model
+
+    if ai_provider == "Auto-Select (Smart AI)":
+      active_provider = "Google Gemini"
+      # Smart Logic: Check if prompt is complex (coding, architecture, long text)
+      coding_keywords = ["code", "python", "javascript", "error", "bug", "build", "script", "app", "database", "api"]
+      is_complex = any(kw in prompt.lower() for kw in coding_keywords) or len(prompt) > 120
+      
+      if is_complex:
+        active_model = "gemini-3.1-pro-preview"
+      else:
+        active_model = "gemini-3.8-flash"
+
+    # Display real-time active model indicator badge for the user
+    st.info(f"🟢 **Active Engine:** {active_provider} (`{active_model}`)")
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
       st.markdown(prompt)
 
     with st.chat_message("assistant"):
-      with st.spinner(f"DasAi ({ai_provider} - {selected_model}) working..."):
+      with st.spinner(f"DasAi is processing via {active_model}..."):
         try:
           ai_response = ""
 
-          # --- Google Gemini Execution ---
-          if ai_provider == "Google Gemini":
+          # --- Google Gemini Execution (Supports Auto-Select & Manual Gemini) ---
+          if active_provider == "Google Gemini":
             genai.configure(api_key=api_key)
             gemini_model = genai.GenerativeModel(
-                model_name=selected_model, system_instruction=system_instruction
+                model_name=active_model, system_instruction=system_instruction
             )
             gemini_history = []
             for msg in st.session_state.messages[:-1]:
@@ -191,7 +217,7 @@ if prompt := st.chat_input(
             ai_response = response.text
 
           # --- OpenAI ChatGPT Execution ---
-          elif ai_provider == "OpenAI ChatGPT":
+          elif active_provider == "OpenAI ChatGPT":
             client = openai.OpenAI(api_key=api_key)
             openai_messages = [
                 {"role": "system", "content": system_instruction}
@@ -201,19 +227,19 @@ if prompt := st.chat_input(
                   {"role": msg["role"], "content": msg["content"]}
               )
             response = client.chat.completions.create(
-                model=selected_model, messages=openai_messages
+                model=active_model, messages=openai_messages
             )
             ai_response = response.choices[0].message.content
 
           # --- Anthropic Claude Execution ---
-          elif ai_provider == "Anthropic Claude":
+          elif active_provider == "Anthropic Claude":
             client = anthropic.Anthropic(api_key=api_key)
             claude_messages = []
             for msg in st.session_state.messages:
               role = "user" if msg["role"] == "user" else "assistant"
               claude_messages.append({"role": role, "content": msg["content"]})
             response = client.messages.create(
-                model=selected_model,
+                model=active_model,
                 max_tokens=4000,
                 system=system_instruction,
                 messages=claude_messages,
