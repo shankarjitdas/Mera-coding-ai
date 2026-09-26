@@ -54,7 +54,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Database Setup with Admin Column & Logs
+# 2. Database Setup & Auto-Admin Initialization
 def init_db():
     conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
@@ -79,6 +79,13 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Automatically grant Admin privileges to the specified master email
+    conn = sqlite3.connect("dasai_professional.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET is_admin = 1 WHERE email = 'shankarjitdas2@gmail.com'")
+    conn.commit()
+    conn.close()
+
 init_db()
 
 def hash_password(password):
@@ -88,10 +95,10 @@ def register_user(name, email, mobile, password):
     try:
         conn = sqlite3.connect("dasai_professional.db")
         c = conn.cursor()
-        # Check if this is the very first user, make them Admin automatically
         c.execute("SELECT COUNT(*) FROM users")
         count = c.fetchone()[0]
-        is_admin_val = 1 if count == 0 else 0
+        # Make primary user or master email admin automatically
+        is_admin_val = 1 if (count == 0 or email == 'shankarjitdas2@gmail.com') else 0
 
         c.execute("INSERT INTO users (name, email, mobile, password, is_admin) VALUES (?, ?, ?, ?, ?)",
                   (name, email, mobile, hash_password(password), is_admin_val))
@@ -164,12 +171,19 @@ if not st.session_state.logged_in:
                 
                 if submitted:
                     if login_email and login_pass:
+                        # Ensure master admin email always has is_admin flag set true on login check
+                        conn = sqlite3.connect("dasai_professional.db")
+                        c = conn.cursor()
+                        c.execute("UPDATE users SET is_admin = 1 WHERE email = 'shankarjitdas2@gmail.com'")
+                        conn.commit()
+                        conn.close()
+
                         user = verify_user(login_email, login_pass)
                         if user:
                             st.session_state.logged_in = True
                             st.session_state.user_email = login_email
                             st.session_state.user_name = user[1]
-                            st.session_state.is_admin = user[5]  # is_admin column index
+                            st.session_state.is_admin = user[5]
                             
                             st.query_params["user"] = login_email
                             st.query_params["name"] = user[1]
@@ -179,7 +193,7 @@ if not st.session_state.logged_in:
                             st.success("Authentication Successful!")
                             st.rerun()
                         else:
-                            st.error("Invalid Email or Password! (First registered user becomes Admin automatically)")
+                            st.error("Invalid Email or Password!")
                     else:
                         st.warning("Please fill in all fields.")
                     
@@ -196,7 +210,7 @@ if not st.session_state.logged_in:
                     if reg_name and reg_email and reg_mobile and reg_pass:
                         success = register_user(reg_name, reg_email, reg_mobile, reg_pass)
                         if success:
-                            st.success("Account created successfully! Switch to Login tab. (Note: First user is Admin)")
+                            st.success("Account created successfully! Switch to Login tab.")
                         else:
                             st.error("Email already registered!")
                     else:
@@ -208,8 +222,9 @@ with st.sidebar:
     st.markdown(f"### 👤 {st.session_state.user_name}")
     st.caption(f"📧 {st.session_state.user_email}")
     
-    if st.session_state.is_admin == 1:
+    if st.session_state.is_admin == 1 or st.session_state.user_email == 'shankarjitdas2@gmail.com':
         st.error("👑 ADMIN MODE ACTIVE")
+        st.session_state.is_admin = 1
     else:
         st.success("✨ Pro Intelligence Active")
         
@@ -289,7 +304,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Intelligence Core v4.3")
+    st.caption("🚀 DasAi Intelligence Core v4.4")
 
 # App Header & Main Views
 st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
