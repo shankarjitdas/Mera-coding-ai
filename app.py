@@ -319,7 +319,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Intelligence Core v5.3")
+    st.caption("🚀 DasAi Intelligence Core v5.4")
 
 # ==========================================
 # 6. ADMIN PANEL VS USER CHAT INTERFACE SEPARATION
