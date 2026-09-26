@@ -319,7 +319,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Intelligence Core v5.2")
+    st.caption("🚀 DasAi Intelligence Core v5.3")
 
 # ==========================================
 # 6. ADMIN PANEL VS USER CHAT INTERFACE SEPARATION
@@ -365,7 +365,7 @@ if st.session_state.is_admin == 1:
             conn.close()
 
             if users_list:
-                for u in users_List if 'users_List' in locals() else users_list:
+                for u in users_list:
                     role_badge = "👑 Admin (Master)" if u[2] == 'shankarjitdas2@gmail.com' else ("👑 Admin" if u[4] == 1 else "👤 User")
                     st.markdown(f"- **ID:** {u[0]} | **Name:** {u[1]} | **Email:** `{u[2]}` | **Mobile:** {u[3]} | **Role:** {role_badge}")
             else:
@@ -428,7 +428,7 @@ else:
             response_msg = "✅ AI Mode successfully switched to **Professional Prompt Engineer** via chat command!"
         elif "business mode" in cmd_lower or "business consultant" in cmd_lower:
             st.session_state.current_persona = "Enterprise Business Consultant"
-            setting_changed =` True`
+            setting_changed = True
             response_msg = "✅ AI Mode successfully switched to **Enterprise Business Consultant** via chat command!"
 
         elif "pay" in cmd_lower or "payment" in cmd_lower or "qr" in cmd_lower:
@@ -462,4 +462,5 @@ else:
 
             with st.chat_message("assistant"):
                 with st.spinner("Ask DasAi is analyzing and generating response..."):
-                
+                    try:
+                        ai_response =
