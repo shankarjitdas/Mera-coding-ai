@@ -48,7 +48,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Database Setup
+# 2. Database Setup with Auto-Reset for Schema Updates
 def init_db():
     conn = sqlite3.connect("dasai_saas.db")
     c = conn.cursor()
@@ -104,51 +104,23 @@ def log_activity(email, action):
     conn.commit()
     conn.close()
 
-# 3. Session State
+# 3. Session State for Login Tracking
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 
-# 4. Authentication Flow
+# 4. Authentication Flow (No external heavy imports needed)
 if not st.session_state.logged_in:
     st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Login via Email or Google</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Login</p>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Proper Google OAuth Integration using Streamlit secrets / input credentials
-        from streamlit_google_auth import GoogleAuth
-        
-        # Streamlit secrets mein client_id aur client_secret set karna hoga
-        # ya aap yahan direct credentials daal sakte hain
-        client_id = st.secrets.get("GOOGLE_CLIENT_ID", "Aapka_Google_Client_ID")
-        client_secret = st.secrets.get("GOOGLE_CLIENT_SECRET", "Aapka_Google_Client_Secret")
-        redirect_uri = st.secrets.get("GOOGLE_REDIRECT_URI", "http://localhost:8501")
-
-        if client_id != "Aapka_Google_Client_ID":
-            google_auth = GoogleAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, server_metadata_url="https://accounts.google.com/.well-known/openid-configuration")
-            logged_in_google = google_auth.login()
-            
-            if logged_in_google:
-                user_info = google_auth.get_user_info()
-                g_email = user_info.get("email")
-                g_name = user_info.get("name", "Google User")
-                
-                st.session_state.logged_in = True
-                st.session_state.user_email = g_email
-                log_activity(g_email, "Logged In via Google OAuth")
-                st.rerun()
-        else:
-            # Agar credentials configured nahi hain toh warning dikhayein
-            st.warning("Google OAuth ke liye Streamlit secrets mein `GOOGLE_CLIENT_ID` aur `GOOGLE_CLIENT_SECRET` configure karein.")
-
-        st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
-        
         auth_mode = st.radio("Choose Action", ["Login", "Register"], horizontal=True)
         
         if auth_mode == "Login":
-            st.subheader("🔐 Email Login")
+            st.subheader("🔐 Account Login")
             login_email = st.text_input("Email Address")
             login_pass = st.text_input("Password", type="password")
             if st.button("Login to DasAi", use_container_width=True):
@@ -180,4 +152,148 @@ if not st.session_state.logged_in:
                     st.warning("Please fill all the details!")
     st.stop()
 
-# 5. Main App Dashboard (Baaki ka code same rahega)
+# 5. Main App Dashboard (Accessible Only After Login)
+with st.sidebar:
+    st.markdown(f"## 👤 Welcome, {st.session_state.user_email}")
+    st.markdown("---")
+    st.markdown("## ⚙️ DasAi SaaS Control")
+    
+    ai_provider = st.selectbox(
+        "Select AI Provider",
+        ["Auto-Select (Smart AI)", "Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
+    )
+
+    api_key = None
+    selected_model = ""
+
+    if ai_provider == "Auto-Select (Smart AI)":
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Gemini API Key:", type="password")
+
+    elif ai_provider == "Google Gemini":
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Gemini API Key:", type="password")
+        selected_model = st.selectbox("Choose Model", ["gemini-3.1-pro-preview", "gemini-3.8-flash"])
+
+    elif ai_provider == "OpenAI ChatGPT":
+        try:
+            api_key = st.secrets.get("OPENAI_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter OpenAI API Key:", type="password")
+        selected_model = st.selectbox("Choose Model", ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"])
+
+    elif ai_provider == "Anthropic Claude":
+        try:
+            api_key = st.secrets.get("ANTHROPIC_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Anthropic API Key:", type="password")
+        selected_model = st.selectbox("Choose Model", ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-haiku-20240307"])
+
+    st.markdown("---")
+    
+    # Admin Control Panel Section to view users
+    if st.session_state.user_email in ["admin@gmail.com", "root@gmail.com"]:
+        if st.checkbox("👑 Open Admin Control Panel"):
+            st.markdown("### 📊 Active Users & Logs")
+            conn = sqlite3.connect("dasai_saas.db")
+            c = conn.cursor()
+            c.execute("SELECT name, email, mobile FROM users")
+            all_users = c.fetchall()
+            st.write(f"**Total Registered Users:** {len(all_users)}")
+            for u in all_users:
+                st.text(f"👤 {u[0]} | 📧 {u[1]} | 📱 {u[2]}")
+            conn.close()
+
+    if st.button("🗑️ Clear Workspace", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+    if st.button("🚪 Logout", use_container_width=True):
+        log_activity(st.session_state.user_email, "Logged Out")
+        st.session_state.logged_in = False
+        st.session_state.user_email = ""
+        st.rerun()
+
+    st.markdown("---")
+    st.caption("🚀 DasAi SaaS Platform v3.2")
+
+# Header
+st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Your Enterprise-grade AI powerhouse with Smart Auto-Routing and Multi-Model support.</p>', unsafe_allow_html=True)
+
+system_instruction = """
+You are DasAi, an elite Principal Software Engineer, Enterprise SaaS Architect, and Multi-Domain AI Expert. 
+Your core competencies include advanced coding, SaaS scaling, mobile utilities, and business growth.
+"""
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+if prompt := st.chat_input("Ask DasAi..."):
+    if not api_key:
+        st.error(f"Kripya pehle sidebar (3-line menu) mein API key provide karein!")
+    else:
+        active_provider = ai_provider
+        active_model = selected_model
+
+        if ai_provider == "Auto-Select (Smart AI)":
+            active_provider = "Google Gemini"
+            coding_keywords = ["code", "python", "javascript", "error", "bug", "build", "script", "app", "database", "api"]
+            is_complex = any(kw in prompt.lower() for kw in coding_keywords) or len(prompt) > 120
+            if is_complex:
+                active_model = "gemini-3.1-pro-preview"
+            else:
+                active_model = "gemini-3.8-flash"
+
+        st.info(f"🟢 **Active Engine:** {active_provider} (`{active_model}`)")
+        log_activity(st.session_state.user_email, f"Queried: {prompt[:30]}...")
+
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner(f"DasAi is processing via {active_model}..."):
+                try:
+                    ai_response = ""
+                    if active_provider == "Google Gemini":
+                        genai.configure(api_key=api_key)
+                        gemini_model = genai.GenerativeModel(model_name=active_model, system_instruction=system_instruction)
+                        gemini_history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
+                        chat_session = gemini_model.start_chat(history=gemini_history)
+                        response = chat_session.send_message(prompt)
+                        ai_response = response.text
+
+                    elif active_provider == "OpenAI ChatGPT":
+                        client = openai.OpenAI(api_key=api_key)
+                        openai_messages = [{"role": "system", "content": system_instruction}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+                        response = client.chat.completions.create(model=active_model, messages=openai_messages)
+                        ai_response = response.choices[0].message.content
+
+                    elif active_provider == "Anthropic Claude":
+                        client = anthropic.Anthropic(api_key=api_key)
+                        claude_messages = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["content"]} for m in st.session_state.messages]
+                        response = client.messages.create(model=active_model, max_tokens=4000, system=system_instruction, messages=claude_messages)
+                        ai_response = response.content[0].text
+
+                    st.markdown(ai_response)
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                except Exception as e:
+                    st.error(f"Execution Error: {e}")
+                    
