@@ -1,168 +1,177 @@
 import google.generativeai as genai
+import requests
 import streamlit as st
 
-# 1. Page Configuration & Styling
+# 1. Page Configuration & Professional Layout
 st.set_page_config(
-    page_title="DasAi - Enterprise Coding Assistant",
+    page_title="DasAi - Universal AI Assistant",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS for Professional Look
+# Custom Styling for Code Block Copy Buttons & UI Cleanliness
 st.markdown(
     """
     <style>
-    .stChatInput {
-        max-width: 1000px;
-        margin: auto;
-    }
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2.3rem;
         font-weight: 800;
-        color: #1f1f1f;
+        color: #ff4b4b;
         margin-bottom: 0px;
     }
     .sub-header {
         font-size: 1.1rem;
         color: #666666;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     .stChatMessage {
         padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 10px;
+        border-radius: 12px;
+        margin-bottom: 12px;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Configuration & Settings
+# 2. Sidebar Settings & Tools Panel
 with st.sidebar:
-  st.markdown("## ⚙️ DasAi Control Panel")
+  st.markdown("## ⚙️ DasAi Control Center")
   st.markdown("---")
 
-  # API Key Management
+  # API Key Setup
   api_key = None
   try:
-    # Streamlit Secrets se key uthayega (Cloud ke liye)
     api_key = st.secrets.get("GEMINI_API_KEY")
   except Exception:
     pass
 
   if not api_key:
     api_key = st.text_input(
-        "Enter Gemini API Key:", type="password", help="Apni Google AI Studio API Key yahan dalein"
+        "Enter Gemini API Key:",
+        type="password",
+        help="Google AI Studio se li gayi key yahan dalein",
     )
 
-  st.markdown("### 🛠️ Model Settings")
-  # Sabse powerful aur advanced model jo aapne manga hai
+  st.markdown("### 🧠 Intelligence Model")
   selected_model = st.selectbox(
-      "Choose Intelligence Model",
+      "Choose Model",
       ["gemini-3.1-pro-preview", "gemini-3.8-flash"],
       index=0,
-      help="Pro model complex coding architecture ke liye sabse best hai.",
+      help="Pro model complex coding aur reasoning ke liye best hai.",
   )
 
-  temperature = st.slider(
-      "Creativity / Temperature",
-      min_value=0.0,
-      max_value=1.0,
-      value=0.2,
-      step=0.1,
-      help="Low temperature code accuracy ke liye behtar hota hai.",
-  )
+  st.markdown("---")
+  st.markdown("### 🌤️ Live Weather Tool")
+  city_input = st.text_input("Check City Weather:", "Delhi")
+  if st.button("Fetch Live Weather"):
+    try:
+      geo_url = f"https://nominatim.openstreetmap.org/search?q={city_input}&format=json&limit=1"
+      headers = {"User-Agent": "DasAiApp/1.0"}
+      geo_res = requests.get(geo_url, headers=headers).json()
+      if geo_res:
+        lat, lon = float(geo_res[0]["lat"]), float(geo_res[0]["lon"])
+        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
+        w_res = requests.get(weather_url).json()
+        curr = w_res["current"]
+        st.success(
+            f"📍 **{city_input.capitalize()}**\n\n- Temp: **{curr['temperature_2m']}°C**\n- Humidity:"
+            f" **{curr['relative_humidity_2m']}%**\n- Wind:"
+            f" **{curr['wind_speed_10m']} km/h**"
+        )
+      else:
+        st.error("City nahi mili!")
+    except Exception as e:
+      st.error(f"Weather fetch karne mein error: {e}")
 
   st.markdown("---")
   if st.button("🗑️ Clear Chat History", use_container_width=True):
     st.session_state.messages = []
     st.rerun()
 
-  st.markdown("### 📊 Status")
-  if api_key:
-    st.success("API Key Configured ✅")
-  else:
-    st.warning("API Key Required ⚠️")
-
-  st.markdown("---")
-  st.caption("Powered by Google Gemini & Streamlit | Professional Edition")
+  st.caption("🚀 Powered by Gemini & Streamlit")
 
 # 3. Main Header Interface
 st.markdown(
-    '<p class="main-header">🤖 DasAi Coding Assistant</p>',
+    '<p class="main-header">🤖 DasAi Universal AI Assistant</p>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<p class="sub-header">Advanced software engineering, debugging, and multi-language system design at your fingertips.</p>',
+    '<p class="sub-header">Advanced Software Engineering, Device/App Guidance, Digital Business, Travel, Healthcare Info, and Real-time Utilities.</p>',
     unsafe_allow_html=True,
 )
 
-# 4. API Configuration & Model Initialization
+# 4. Master Universal System Prompt & Model Initialization
 if api_key:
   try:
     genai.configure(api_key=api_key)
 
-    # System Instructions for Professional Coding AI behavior
-    system_prompt = (
-        "You are DasAi, an elite Principal Software Engineer and AI Coding Assistant. "
-        "Your responses must be extremely accurate, clean, highly optimized, and production-ready. "
-        "Always explain complex logic clearly in English/Hinglish as requested, and provide "
-        "properly structured markdown code blocks with clear language specifiers (e.g., python, javascript, cpp)."
-    )
+    # Master Universal Prompt integrating all required domains
+    system_instruction = """
+        You are DasAi, an elite, highly intelligent, and multi-disciplinary Universal AI Assistant 
+        and Principal System Architect. You possess expert-level knowledge across a massive range of domains:
 
-    # Initialize the Generative Model with configuration
-    generation_config = {"temperature": temperature}
+        1. Software Engineering, Coding & Tech: Python, JavaScript, HTML/CSS, Database management, API integration, debugging, app/website creation, and system architecture.
+        2. Mobile & Device Utilities: Smartphone settings, phone diagnostics, contacts, SMS, calling, WhatsApp, Telegram, email, calendar, alarm, calculator, notes, camera, gallery, file manager, PDF reader, document scanner, and screen recording.
+        3. Travel, Logistics & Transport: Maps, GPS navigation, nearby places, train search/timetable/PNR/ticket booking info, bus search/booking, flight search/booking, airport info, cab/taxi/auto booking, metro info, travel planning, and hotel booking.
+        4. Healthcare & Medical Guidance: Vellore hospital search, Christian Medical College (CMC) Vellore information, medical appointment details, pharmacy information, blood bank info, doctors, ambulance, and emergency services.
+        5. Local & Regional Knowledge: Hailakandi information, Silchar information, Assam info, India info, and Indian government services (Aadhaar, PAN, Passport, Driving licence, RTO, electricity, water, gas).
+        6. Finance, Business & Digital Services: Banking info, UPI, digital payments, currency conversion, stock market, cryptocurrency, shopping, product/price comparison, grocery delivery, online education, job search, resume creation, business research, Amazon KDP, SEO, marketing, analytics, and customer support.
+        7. Digital Content & Growth: YouTube research, Instagram tools, Facebook tools & monetization, LinkedIn tools, content writing, blog/ebook creation, AI image/video generation, translation, OCR, and workflow automation.
+
+        Guidelines for your responses:
+        - Provide precise, highly structured, clean, and production-ready answers.
+        - Always format code blocks clearly with proper language specifiers (e.g., python, javascript) so users can easily copy snippets using native markdown copy tools.
+        - Maintain a professional yet helpful tone. Answer accurately in English or Hinglish based on the user's preference.
+        """
+
     model = genai.GenerativeModel(
-        model_name=selected_model,
-        system_instruction=system_prompt,
-        generation_config=generation_config,
+        model_name=selected_model, system_instruction=system_instruction
     )
   except Exception as e:
-    st.error(f"Failed to initialize model configuration: {e}")
+    st.error(f"Model config error: {e}")
 else:
-  st.info("👈 Kripya apni API key sidebar mein enter karein taaki coding assistant shuru ho sake.")
+  st.warning("⚠️ Kripya sidebar mein apni Gemini API Key enter karein.")
 
-# 5. Session State for Chat Memory Management
+# 5. Session Chat Management
 if "messages" not in st.session_state:
   st.session_state.messages = []
 
-# Display Historical Messages
+# Display Messages
 for message in st.session_state.messages:
   with st.chat_message(message["role"]):
     st.markdown(message["content"])
 
-# 6. User Interaction & Chat Loop
-if prompt := st.chat_input("Apna coding task, bug, ya system architecture yahan type karein..."):
+# User Prompt Input Loop
+if prompt := st.chat_input(
+    "Apna sawal, coding task, travel query, ya device guidance yahan type"
+    " karein..."
+):
   if not api_key:
-    st.error("Pehle sidebar mein Gemini API Key provide karna zaroori hai!")
+    st.error("Pehle API key provide karein!")
   else:
-    # Append User Message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
       st.markdown(prompt)
 
-    # Generate Professional AI Response
     with st.chat_message("assistant"):
-      with st.spinner("DasAi code analyze kar raha hai aur logic likh raha hai..."):
+      with st.spinner("DasAi process kar raha hai..."):
         try:
-          # Format chat history for Gemini multi-turn support
           gemini_history = []
           for msg in st.session_state.messages[:-1]:
             role = "user" if msg["role"] == "user" else "model"
             gemini_history.append({"role": role, "parts": [msg["content"]]})
 
-          # Start chat session and get response
           chat_session = model.start_chat(history=gemini_history)
           response = chat_session.send_message(prompt)
           ai_response = response.text
 
-          # Render response
+          # Render Markdown (Streamlit automatically provides native code copy buttons on code blocks)
           st.markdown(ai_response)
-          
-          # Append Assistant Response to Session History
-          st.session_state.messages.append({"role": "assistant", "content": ai_response})
-
+          st.session_state.messages.append(
+              {"role": "assistant", "content": ai_response}
+          )
         except Exception as e:
-          st.error(f"Execution Error: {e}")
+          st.error(f"Error: {e}")
             
