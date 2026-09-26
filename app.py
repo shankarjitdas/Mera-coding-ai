@@ -43,28 +43,22 @@ st.markdown(
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border-left: 4px solid #3B82F6;
     }
-    .google-btn {
-        background-color: white;
-        color: black;
-        border: 1px solid #ccc;
-        padding: 10px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: bold;
-        width: 100%;
-        cursor: pointer;
-    }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# 2. Database Setup for Users & Activity Tracking
+# 2. Database Setup with Auto-Reset for Schema Updates
 def init_db():
     conn = sqlite3.connect("dasai_saas.db")
     c = conn.cursor()
+    # Drop old tables to prevent schema mismatch errors during updates
+    c.execute('DROP TABLE IF EXISTS activity_logs')
+    c.execute('DROP TABLE IF EXISTS users')
+    
+    # Recreate Users table
     c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             email TEXT UNIQUE,
@@ -72,8 +66,9 @@ def init_db():
             password TEXT
         )
     ''')
+    # Recreate Activity logs table
     c.execute('''
-        CREATE TABLE IF NOT EXISTS activity_logs (
+        CREATE TABLE activity_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT,
             action TEXT,
@@ -139,9 +134,7 @@ if not st.session_state.logged_in:
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Google Login Simulation Button
         if st.button("🌐 Continue with Google Account", use_container_width=True):
-            # Simulated Google Quick-Auth for seamless onboarding
             g_email = "user_google@gmail.com"
             g_name = "Google User"
             google_login_user(g_email, g_name)
@@ -240,7 +233,7 @@ with st.sidebar:
     st.markdown("---")
     
     # Admin Control Panel Section to view users
-    if st.session_state.user_email in ["admin@gmail.com", "root@gmail.com"]: # Apni admin email yahan daal sakte hain
+    if st.session_state.user_email in ["admin@gmail.com", "root@gmail.com"]:
         if st.checkbox("👑 Open Admin Control Panel"):
             st.markdown("### 📊 Active Users & Logs")
             conn = sqlite3.connect("dasai_saas.db")
@@ -263,7 +256,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi SaaS Platform v3.1")
+    st.caption("🚀 DasAi SaaS Platform v3.2")
 
 # Header
 st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
