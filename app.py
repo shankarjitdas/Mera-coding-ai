@@ -1,16 +1,18 @@
 import google.generativeai as genai
+import openai
 import requests
 import streamlit as st
+import anthropic
 
 # 1. Page Configuration & Professional Layout
 st.set_page_config(
-    page_title="DasAi - Universal AI Assistant",
+    page_title="DasAi - Multi-AI Universal Assistant",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling for Code Block Copy Buttons & UI Cleanliness
+# Custom Styling for UI Cleanliness
 st.markdown(
     """
     <style>
@@ -35,32 +37,58 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Settings & Tools Panel
+# 2. Sidebar Settings & Multi-AI Control Panel
 with st.sidebar:
-  st.markdown("## ⚙️ DasAi Control Center")
+  st.markdown("## ⚙️ DasAi Multi-AI Panel")
   st.markdown("---")
 
-  # API Key Setup
-  api_key = None
-  try:
-    api_key = st.secrets.get("GEMINI_API_KEY")
-  except Exception:
-    pass
+  # Model Provider Selection
+  ai_provider = st.selectbox(
+      "Select AI Provider",
+      ["Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
+  )
 
-  if not api_key:
-    api_key = st.text_input(
-        "Enter Gemini API Key:",
-        type="password",
-        help="Google AI Studio se li gayi key yahan dalein",
+  # Dynamic API Key inputs based on selected provider
+  api_key = None
+  selected_model = ""
+
+  if ai_provider == "Google Gemini":
+    try:
+      api_key = st.secrets.get("GEMINI_API_KEY")
+    except Exception:
+      pass
+    if not api_key:
+      api_key = st.text_input("Enter Gemini API Key:", type="password")
+    selected_model = st.selectbox(
+        "Choose Model", ["gemini-3.1-pro-preview", "gemini-3.8-flash"]
     )
 
-  st.markdown("### 🧠 Intelligence Model")
-  selected_model = st.selectbox(
-      "Choose Model",
-      ["gemini-3.1-pro-preview", "gemini-3.8-flash"],
-      index=0,
-      help="Pro model complex coding aur reasoning ke liye best hai.",
-  )
+  elif ai_provider == "OpenAI ChatGPT":
+    try:
+      api_key = st.secrets.get("OPENAI_API_KEY")
+    except Exception:
+      pass
+    if not api_key:
+      api_key = st.text_input("Enter OpenAI API Key:", type="password")
+    selected_model = st.selectbox(
+        "Choose Model", ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
+    )
+
+  elif ai_provider == "Anthropic Claude":
+    try:
+      api_key = st.secrets.get("ANTHROPIC_API_KEY")
+    except Exception:
+      pass
+    if not api_key:
+      api_key = st.text_input("Enter Anthropic API Key:", type="password")
+    selected_model = st.selectbox(
+        "Choose Model",
+        [
+            "claude-3-5-sonnet-20241022",
+            "claude-3-opus-20240229",
+            "claude-3-haiku-20240307",
+        ],
+    )
 
   st.markdown("---")
   st.markdown("### 🌤️ Live Weather Tool")
@@ -90,49 +118,27 @@ with st.sidebar:
     st.session_state.messages = []
     st.rerun()
 
-  st.caption("🚀 Powered by Gemini & Streamlit")
+  st.caption("🚀 Multi-AI Powered by Streamlit")
 
 # 3. Main Header Interface
 st.markdown(
-    '<p class="main-header">🤖 DasAi Universal AI Assistant</p>',
+    '<p class="main-header">🤖 DasAi Multi-AI Assistant</p>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<p class="sub-header">Advanced Software Engineering, Device/App Guidance, Digital Business, Travel, Healthcare Info, and Real-time Utilities.</p>',
+    '<p class="sub-header">Switch between Gemini, ChatGPT, and Claude models seamlessly in one unified interface.</p>',
     unsafe_allow_html=True,
 )
 
-# 4. Master Universal System Prompt & Model Initialization
-if api_key:
-  try:
-    genai.configure(api_key=api_key)
-
-    # Master Universal Prompt integrating all required domains
-    system_instruction = """
-        You are DasAi, an elite, highly intelligent, and multi-disciplinary Universal AI Assistant 
-        and Principal System Architect. You possess expert-level knowledge across a massive range of domains:
-
-        1. Software Engineering, Coding & Tech: Python, JavaScript, HTML/CSS, Database management, API integration, debugging, app/website creation, and system architecture.
-        2. Mobile & Device Utilities: Smartphone settings, phone diagnostics, contacts, SMS, calling, WhatsApp, Telegram, email, calendar, alarm, calculator, notes, camera, gallery, file manager, PDF reader, document scanner, and screen recording.
-        3. Travel, Logistics & Transport: Maps, GPS navigation, nearby places, train search/timetable/PNR/ticket booking info, bus search/booking, flight search/booking, airport info, cab/taxi/auto booking, metro info, travel planning, and hotel booking.
-        4. Healthcare & Medical Guidance: Vellore hospital search, Christian Medical College (CMC) Vellore information, medical appointment details, pharmacy information, blood bank info, doctors, ambulance, and emergency services.
-        5. Local & Regional Knowledge: Hailakandi information, Silchar information, Assam info, India info, and Indian government services (Aadhaar, PAN, Passport, Driving licence, RTO, electricity, water, gas).
-        6. Finance, Business & Digital Services: Banking info, UPI, digital payments, currency conversion, stock market, cryptocurrency, shopping, product/price comparison, grocery delivery, online education, job search, resume creation, business research, Amazon KDP, SEO, marketing, analytics, and customer support.
-        7. Digital Content & Growth: YouTube research, Instagram tools, Facebook tools & monetization, LinkedIn tools, content writing, blog/ebook creation, AI image/video generation, translation, OCR, and workflow automation.
-
-        Guidelines for your responses:
-        - Provide precise, highly structured, clean, and production-ready answers.
-        - Always format code blocks clearly with proper language specifiers (e.g., python, javascript) so users can easily copy snippets using native markdown copy tools.
-        - Maintain a professional yet helpful tone. Answer accurately in English or Hinglish based on the user's preference.
-        """
-
-    model = genai.GenerativeModel(
-        model_name=selected_model, system_instruction=system_instruction
-    )
-  except Exception as e:
-    st.error(f"Model config error: {e}")
-else:
-  st.warning("⚠️ Kripya sidebar mein apni Gemini API Key enter karein.")
+# 4. Master Universal System Prompt Instruction
+system_instruction = """
+You are DasAi, an elite, highly intelligent, and multi-disciplinary Universal AI Assistant 
+and Principal System Architect. You possess expert-level knowledge across a massive range of domains:
+1. Software Engineering & Coding (Python, JS, Web Dev, DB, Architecture).
+2. Mobile/Device Utilities, Travel, Healthcare (CMC Vellore), and Government Services.
+3. Digital Content Creation, YouTube/Facebook Monetization, and Business Strategy.
+Provide clean, structured responses and proper markdown code blocks with copy features. Answer accurately in English or Hinglish.
+"""
 
 # 5. Session Chat Management
 if "messages" not in st.session_state:
@@ -144,34 +150,71 @@ for message in st.session_state.messages:
     st.markdown(message["content"])
 
 # User Prompt Input Loop
-if prompt := st.chat_input(
-    "Apna sawal, coding task, travel query, ya device guidance yahan type"
-    " karein..."
-):
+if prompt := st.chat_input("Apna sawal ya coding task yahan type karein..."):
   if not api_key:
-    st.error("Pehle API key provide karein!")
+    st.error(
+        f"Pehle sidebar mein {ai_provider} ki API Key provide karna zaroori hai!"
+    )
   else:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
       st.markdown(prompt)
 
     with st.chat_message("assistant"):
-      with st.spinner("DasAi process kar raha hai..."):
+      with st.spinner(f"Connecting to {ai_provider} ({selected_model})..."):
         try:
-          gemini_history = []
-          for msg in st.session_state.messages[:-1]:
-            role = "user" if msg["role"] == "user" else "model"
-            gemini_history.append({"role": role, "parts": [msg["content"]]})
+          ai_response = ""
 
-          chat_session = model.start_chat(history=gemini_history)
-          response = chat_session.send_message(prompt)
-          ai_response = response.text
+          # --- GEMINI EXECUTION ---
+          if ai_provider == "Google Gemini":
+            genai.configure(api_key=api_key)
+            gemini_model = genai.GenerativeModel(
+                model_name=selected_model, system_instruction=system_instruction
+            )
+            gemini_history = []
+            for msg in st.session_state.messages[:-1]:
+              role = "user" if msg["role"] == "user" else "model"
+              gemini_history.append({"role": role, "parts": [msg["content"]]})
+            chat_session = gemini_model.start_chat(history=gemini_history)
+            response = chat_session.send_message(prompt)
+            ai_response = response.text
 
-          # Render Markdown (Streamlit automatically provides native code copy buttons on code blocks)
+          # --- OPENAI CHATGPT EXECUTION ---
+          elif ai_provider == "OpenAI ChatGPT":
+            client = openai.OpenAI(api_key=api_key)
+            openai_messages = [
+                {"role": "system", "content": system_instruction}
+            ]
+            for msg in st.session_state.messages:
+              openai_messages.append(
+                  {"role": msg["role"], "content": msg["content"]}
+              )
+            response = client.chat.completions.create(
+                model=selected_model, messages=openai_messages
+            )
+            ai_response = response.choices[0].message.content
+
+          # --- ANTHROPIC CLAUDE EXECUTION ---
+          elif ai_provider == "Anthropic Claude":
+            client = anthropic.Anthropic(api_key=api_key)
+            claude_messages = []
+            for msg in st.session_state.messages:
+              role = "user" if msg["role"] == "user" else "assistant"
+              claude_messages.append({"role": role, "content": msg["content"]})
+            response = client.messages.create(
+                model=selected_model,
+                max_tokens=4000,
+                system=system_instruction,
+                messages=claude_messages,
+            )
+            ai_response = response.content[0].text
+
+          # Render Response
           st.markdown(ai_response)
           st.session_state.messages.append(
               {"role": "assistant", "content": ai_response}
           )
+
         except Exception as e:
-          st.error(f"Error: {e}")
+          st.error(f"Execution Error with {ai_provider}: {e}")
             
