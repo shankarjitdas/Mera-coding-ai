@@ -1,17 +1,18 @@
+import sqlite3
+import hashlib
 import google.generativeai as genai
 import openai
 import streamlit as st
 import anthropic
 
-# 1. Page Configuration & Enterprise Styling with Center RGB Animation & Collapsible Sidebar
+# 1. Page Configuration & Enterprise Styling
 st.set_page_config(
     page_title="DasAi - Professional SaaS AI Agent",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed",  # Sidebar default closed with 3-line menu
+    initial_sidebar_state="collapsed",
 )
 
-# Custom High-End SaaS UI Styling with Centered Big RGB Header
 st.markdown(
     """
     <style>
@@ -47,185 +48,256 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Control Center (Opens via 3-Line Menu)
+# 2. Database Setup for Users & Activity Tracking
+def init_db():
+    conn = sqlite3.connect("dasai_saas.db")
+    c = conn.cursor()
+    # Users table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT UNIQUE,
+            mobile TEXT,
+            username TEXT UNIQUE,
+            password TEXT
+        )
+    ''')
+    # Activity logs table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            action TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def register_user(name, email, mobile, username, password):
+    try:
+        conn = sqlite3.connect("dasai_saas.db")
+        c = conn.cursor()
+        c.execute("INSERT INTO users (name, email, mobile, username, password) VALUES (?, ?, ?, ?, ?)",
+                  (name, email, mobile, username, hash_password(password)))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+def verify_user(username, password):
+    conn = sqlite3.connect("dasai_saas.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hash_password(password)))
+    user = c.fetchone()
+    conn.close()
+    return user
+
+def log_activity(username, action):
+    conn = sqlite3.connect("dasai_saas.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO activity_logs (username, action) VALUES (?, ?)", (username, action))
+    conn.commit()
+    conn.close()
+
+# 3. Session State for Login Tracking
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+# 4. Authentication Flow (Login / Signup Screen)
+if not st.session_state.logged_in:
+    st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Please Login or Register</p>', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        auth_mode = st.radio("Choose Action", ["Login", "Register"], horizontal=True)
+        
+        if auth_mode == "Login":
+            st.subheader("🔐 User Login")
+            login_user = st.text_input("Username")
+            login_pass = st.text_input("Password", type="password")
+            if st.button("Login to DasAi", use_container_width=True):
+                user = verify_user(login_user, login_pass)
+                if user:
+                    st.session_state.logged_in = True
+                    st.session_state.username = login_user
+                    log_activity(login_user, "Logged In")
+                    st.success("Login Successful!")
+                    st.rerun()
+                else:
+                    st.error("Invalid Username or Password!")
+                    
+        else:
+            st.subheader("📝 Create New Account")
+            reg_name = st.text_input("Full Name")
+            reg_email = st.text_input("Email Address")
+            reg_mobile = st.text_input("Mobile Number")
+            reg_user = st.text_input("Choose Username")
+            reg_pass = st.text_input("Choose Password", type="password")
+            
+            if st.button("Register Account", use_container_width=True):
+                if reg_name and reg_email and reg_mobile and reg_user and reg_pass:
+                    success = register_user(reg_name, reg_email, reg_mobile, reg_user, reg_pass)
+                    if success:
+                        st.success("Account created successfully! Please switch to Login.")
+                    else:
+                        st.error("Username or Email already exists!")
+                else:
+                    st.warning("Please fill all the details!")
+    st.stop()
+
+# 5. Main App Dashboard (Accessible Only After Login)
 with st.sidebar:
-  st.markdown("## ⚙️ DasAi SaaS Control")
-  st.markdown("---")
-
-  ai_provider = st.selectbox(
-      "Select AI Provider",
-      ["Auto-Select (Smart AI)", "Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
-  )
-
-  api_key = None
-  selected_model = ""
-
-  if ai_provider == "Auto-Select (Smart AI)":
-    try:
-      api_key = st.secrets.get("GEMINI_API_KEY")
-    except Exception:
-      pass
-    if not api_key:
-      api_key = st.text_input("Enter Gemini API Key:", type="password")
-
-  elif ai_provider == "Google Gemini":
-    try:
-      api_key = st.secrets.get("GEMINI_API_KEY")
-    except Exception:
-      pass
-    if not api_key:
-      api_key = st.text_input("Enter Gemini API Key:", type="password")
-    selected_model = st.selectbox(
-        "Choose Model", ["gemini-3.1-pro-preview", "gemini-3.8-flash"]
+    st.markdown(f"## 👤 Welcome, {st.session_state.username}")
+    st.markdown("---")
+    st.markdown("## ⚙️ DasAi SaaS Control")
+    
+    ai_provider = st.selectbox(
+        "Select AI Provider",
+        ["Auto-Select (Smart AI)", "Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
     )
 
-  elif ai_provider == "OpenAI ChatGPT":
-    try:
-      api_key = st.secrets.get("OPENAI_API_KEY")
-    except Exception:
-      pass
-    if not api_key:
-      api_key = st.text_input("Enter OpenAI API Key:", type="password")
-    selected_model = st.selectbox(
-        "Choose Model", ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
-    )
-
-  elif ai_provider == "Anthropic Claude":
-    try:
-      api_key = st.secrets.get("ANTHROPIC_API_KEY")
-    except Exception:
-      pass
-    if not api_key:
-      api_key = st.text_input("Enter Anthropic API Key:", type="password")
-    selected_model = st.selectbox(
-        "Choose Model",
-        [
-            "claude-3-5-sonnet-20241022",
-            "claude-3-opus-20240229",
-            "claude-3-haiku-20240307",
-        ],
-    )
-
-  st.markdown("---")
-  st.markdown("### 🤖 DasAi Workspace")
-  st.markdown("- **Status:** Online & Secure")
-  st.markdown("- **Mode:** Enterprise Ready")
-
-  if st.button("🗑️ Clear Workspace", use_container_width=True):
-    st.session_state.messages = []
-    st.rerun()
-
-  st.markdown("---")
-  st.caption("🚀 DasAi SaaS Platform v2.0")
-
-# 3. Main SaaS Header (Centered, Big & Bold with RGB Animation)
-st.markdown(
-    '<p class="main-header">⚡ DasAi</p>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    '<p class="sub-header">Your Enterprise-grade AI powerhouse with Smart Auto-Routing and Multi-Model support.</p>',
-    unsafe_allow_html=True,
-)
-
-# 4. Master SaaS System Prompt
-system_instruction = """
-You are DasAi, an elite Principal Software Engineer, Enterprise SaaS Architect, and Multi-Domain AI Expert. 
-Your core competencies include:
-1. Advanced Coding & Full-Stack Development: Python, JavaScript, React, Streamlit, HTML/CSS, SQL databases, API integrations, debugging, and secure system design.
-2. SaaS Scaling & Monetization: Subscription models, payment gateways (Stripe/Razorpay), user management, and digital product strategies.
-3. Mobile & Daily Utilities: Device settings, diagnostics, document handling, and live information processing.
-4. Business & Content Growth: YouTube optimization, Facebook monetization, SEO, marketing automation, and Amazon KDP workflows.
-
-Response Guidelines:
-- Write clean, highly optimized, production-ready code with clear language markdown specifiers (e.g., python, javascript) so users can instantly use the built-in copy features.
-- Maintain an expert yet supportive tone. Communicate fluently in English or Hinglish according to user preference.
-"""
-
-# 5. Session State Initialization
-if "messages" not in st.session_state:
-  st.session_state.messages = []
-
-# Display Chat History
-for message in st.session_state.messages:
-  with st.chat_message(message["role"]):
-    st.markdown(message["content"])
-
-# 6. Main Interaction Loop with "Ask DasAi..." Placeholder & Smart Routing
-if prompt := st.chat_input("Ask DasAi..."):
-  if not api_key:
-    st.error(f"Kripya pehle sidebar (3-line menu) mein API key provide karein!")
-  else:
-    active_provider = ai_provider
-    active_model = selected_model
+    api_key = None
+    selected_model = ""
 
     if ai_provider == "Auto-Select (Smart AI)":
-      active_provider = "Google Gemini"
-      coding_keywords = ["code", "python", "javascript", "error", "bug", "build", "script", "app", "database", "api"]
-      is_complex = any(kw in prompt.lower() for kw in coding_keywords) or len(prompt) > 120
-      
-      if is_complex:
-        active_model = "gemini-3.1-pro-preview"
-      else:
-        active_model = "gemini-3.8-flash"
-
-    st.info(f"🟢 **Active Engine:** {active_provider} (`{active_model}`)")
-
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-      st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-      with st.spinner(f"DasAi is processing via {active_model}..."):
         try:
-          ai_response = ""
+            api_key = st.secrets.get("GEMINI_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Gemini API Key:", type="password")
 
-          if active_provider == "Google Gemini":
-            genai.configure(api_key=api_key)
-            gemini_model = genai.GenerativeModel(
-                model_name=active_model, system_instruction=system_instruction
-            )
-            gemini_history = []
-            for msg in st.session_state.messages[:-1]:
-              role = "user" if msg["role"] == "user" else "model"
-              gemini_history.append({"role": role, "parts": [msg["content"]]})
-            chat_session = gemini_model.start_chat(history=gemini_history)
-            response = chat_session.send_message(prompt)
-            ai_response = response.text
+    elif ai_provider == "Google Gemini":
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Gemini API Key:", type="password")
+        selected_model = st.selectbox("Choose Model", ["gemini-3.1-pro-preview", "gemini-3.8-flash"])
 
-          elif active_provider == "OpenAI ChatGPT":
-            client = openai.OpenAI(api_key=api_key)
-            openai_messages = [
-                {"role": "system", "content": system_instruction}
-            ]
-            for msg in st.session_state.messages:
-              openai_messages.append(
-                  {"role": msg["role"], "content": msg["content"]}
-              )
-            response = client.chat.completions.create(
-                model=active_model, messages=openai_messages
-            )
-            ai_response = response.choices[0].message.content
+    elif ai_provider == "OpenAI ChatGPT":
+        try:
+            api_key = st.secrets.get("OPENAI_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter OpenAI API Key:", type="password")
+        selected_model = st.selectbox("Choose Model", ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"])
 
-          elif active_provider == "Anthropic Claude":
-            client = anthropic.Anthropic(api_key=api_key)
-            claude_messages = []
-            for msg in st.session_state.messages:
-              role = "user" if msg["role"] == "user" else "assistant"
-              claude_messages.append({"role": role, "content": msg["content"]})
-            response = client.messages.create(
-                model=active_model,
-                max_tokens=4000,
-                system=system_instruction,
-                messages=claude_messages,
-            )
-            ai_response = response.content[0].text
+    elif ai_provider == "Anthropic Claude":
+        try:
+            api_key = st.secrets.get("ANTHROPIC_API_KEY")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Anthropic API Key:", type="password")
+        selected_model = st.selectbox("Choose Model", ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-haiku-20240307"])
 
-          st.markdown(ai_response)
-          st.session_state.messages.append(
-              {"role": "assistant", "content": ai_response}
-          )
+    st.markdown("---")
+    
+    # Admin Control Panel Section to view users
+    if st.session_state.username in ["admin", "root"]: # Aap apna username yahan admin bana sakte hain
+        if st.checkbox("👑 Open Admin Control Panel"):
+            st.markdown("### 📊 Active Users & Logs")
+            conn = sqlite3.connect("dasai_saas.db")
+            c = conn.cursor()
+            c.execute("SELECT name, email, mobile, username FROM users")
+            all_users = c.fetchall()
+            st.write(f"**Total Registered Users:** {len(all_users)}")
+            for u in all_users:
+                st.text(f"👤 {u[0]} | 📧 {u[1]} | 📱 {u[2]}")
+            conn.close()
 
-        except Exception as e:
-          st.error(f"Execution Error: {e}")
-            
+    if st.button("🗑️ Clear Workspace", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+    if st.button("🚪 Logout", use_container_width=True):
+        log_activity(st.session_state.username, "Logged Out")
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.rerun()
+
+    st.markdown("---")
+    st.caption("🚀 DasAi SaaS Platform v3.0")
+
+# Header
+st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Your Enterprise-grade AI powerhouse with Smart Auto-Routing and Multi-Model support.</p>', unsafe_allow_html=True)
+
+system_instruction = """
+You are DasAi, an elite Principal Software Engineer, Enterprise SaaS Architect, and Multi-Domain AI Expert. 
+Your core competencies include advanced coding, SaaS scaling, mobile utilities, and business growth.
+"""
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+if prompt := st.chat_input("Ask DasAi..."):
+    if not api_key:
+        st.error(f"Kripya pehle sidebar (3-line menu) mein API key provide karein!")
+    else:
+        active_provider = ai_provider
+        active_model = selected_model
+
+        if ai_provider == "Auto-Select (Smart AI)":
+            active_provider = "Google Gemini"
+            coding_keywords = ["code", "python", "javascript", "error", "bug", "build", "script", "app", "database", "api"]
+            is_complex = any(kw in prompt.lower() for kw in coding_keywords) or len(prompt) > 120
+            if is_complex:
+                active_model = "gemini-3.1-pro-preview"
+            else:
+                active_model = "gemini-3.8-flash"
+
+        st.info(f"🟢 **Active Engine:** {active_provider} (`{active_model}`)")
+        log_activity(st.session_state.username, f"Queried: {prompt[:30]}...")
+
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner(f"DasAi is processing via {active_model}..."):
+                try:
+                    ai_response = ""
+                    if active_provider == "Google Gemini":
+                        genai.configure(api_key=api_key)
+                        gemini_model = genai.GenerativeModel(model_name=active_model, system_instruction=system_instruction)
+                        gemini_history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
+                        chat_session = gemini_model.start_chat(history=gemini_history)
+                        response = chat_session.send_message(prompt)
+                        ai_response = response.text
+
+                    elif active_provider == "OpenAI ChatGPT":
+                        client = openai.OpenAI(api_key=api_key)
+                        openai_messages = [{"role": "system", "content": system_instruction}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+                        response = client.chat.completions.create(model=active_model, messages=openai_messages)
+                        ai_response = response.choices[0].message.content
+
+                    elif active_provider == "Anthropic Claude":
+                        client = anthropic.Anthropic(api_key=api_key)
+                        claude_messages = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["content"]} for m in st.session_state.messages]
+                        response = client.messages.create(model=active_model, max_tokens=4000, system=system_instruction, messages=claude_messages)
+                        ai_response = response.content[0].text
+
+                    st.markdown(ai_response)
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                except Exception as e:
+                    st.error(f"Execution Error: {e}")
+                    
