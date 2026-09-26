@@ -5,52 +5,53 @@ import openai
 import streamlit as st
 import anthropic
 
-# 1. Page Configuration & Enterprise Styling
+# 1. Page Configuration & Enterprise Styling (ChatGPT & Claude Theme)
 st.set_page_config(
-    page_title="DasAi - Professional SaaS AI Agent",
+    page_title="DasAi - Professional AI Platform",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
     """
     <style>
-    @keyframes rgbGlow {
-        0% { color: #EF4444; }     /* Red */
-        33% { color: #3B82F6; }    /* Blue */
-        66% { color: #10B981; }    /* Green */
-        100% { color: #EF4444; }   /* Red */
+    /* Global Styling for Professional Look */
+    .stApp {
+        background-color: #131314;
+        color: #e3e3e3;
     }
     .main-header {
-        font-size: 4rem;
-        font-weight: 900;
+        font-size: 3rem;
+        font-weight: 800;
         text-align: center;
-        animation: rgbGlow 6s infinite;
-        margin-top: -10px;
-        margin-bottom: 0px;
+        background: linear-gradient(90deg, #4285F4, #9B72CF, #DB4437);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-top: -20px;
+        margin-bottom: 5px;
     }
     .sub-header {
-        font-size: 1.1rem;
-        color: #4B5563;
+        font-size: 1rem;
+        color: #9aa0a6;
         text-align: center;
-        margin-bottom: 30px;
+        margin-bottom: 25px;
     }
     .stChatMessage {
-        padding: 16px;
-        border-radius: 14px;
+        padding: 18px;
+        border-radius: 12px;
         margin-bottom: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        border-left: 4px solid #3B82F6;
+        background-color: #1e1f20;
+        border: 1px solid #333538;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# 2. Database Setup
+# 2. Database Setup for Users
 def init_db():
-    conn = sqlite3.connect("dasai_saas.db")
+    conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -59,14 +60,6 @@ def init_db():
             email TEXT UNIQUE,
             mobile TEXT,
             password TEXT
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS activity_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT,
-            action TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     conn.commit()
@@ -79,7 +72,7 @@ def hash_password(password):
 
 def register_user(name, email, mobile, password):
     try:
-        conn = sqlite3.connect("dasai_saas.db")
+        conn = sqlite3.connect("dasai_professional.db")
         c = conn.cursor()
         c.execute("INSERT INTO users (name, email, mobile, password) VALUES (?, ?, ?, ?)",
                   (name, email, mobile, hash_password(password)))
@@ -90,21 +83,14 @@ def register_user(name, email, mobile, password):
         return False
 
 def verify_user(email, password):
-    conn = sqlite3.connect("dasai_saas.db")
+    conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE email = ? AND password = ?", (email, hash_password(password)))
     user = c.fetchone()
     conn.close()
     return user
 
-def log_activity(email, action):
-    conn = sqlite3.connect("dasai_saas.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO activity_logs (email, action) VALUES (?, ?)", (email, action))
-    conn.commit()
-    conn.close()
-
-# 3. Session State for Login
+# 3. Session State Management
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_email" not in st.session_state:
@@ -112,21 +98,21 @@ if "user_email" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
-# 4. Authentication Flow
+# 4. Authentication Flow (Login / Register)
 if not st.session_state.logged_in:
-    st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Secure Enterprise AI Portal - Login</p>', unsafe_allow_html=True)
+    st.markdown('<p class="main-header">⚡ DasAi Intelligence</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Sign in to access your Enterprise AI Workspace</p>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        auth_mode = st.radio("Choose Action", ["Login", "Register"], horizontal=True)
+        auth_mode = st.radio("Portal Mode", ["Login", "Register"], horizontal=True, label_visibility="collapsed")
         
         if auth_mode == "Login":
             st.subheader("🔐 Account Login")
             with st.form("login_form"):
                 login_email = st.text_input("Email Address")
                 login_pass = st.text_input("Password", type="password")
-                submitted = st.form_submit_button("Login to DasAi", use_container_width=True)
+                submitted = st.form_submit_button("Access Workspace", use_container_width=True)
                 
                 if submitted:
                     if login_email and login_pass:
@@ -135,120 +121,162 @@ if not st.session_state.logged_in:
                             st.session_state.logged_in = True
                             st.session_state.user_email = login_email
                             st.session_state.user_name = user[1]
-                            log_activity(login_email, "Logged In via Email")
-                            st.success("Login Successful!")
+                            st.success("Authentication Successful!")
                             st.rerun()
                         else:
                             st.error("Invalid Email or Password!")
                     else:
-                        st.warning("Please fill in both Email and Password fields.")
+                        st.warning("Please fill in all fields.")
                     
         else:
-            st.subheader("📝 Create New Account")
+            st.subheader("📝 Register New Account")
             with st.form("register_form"):
                 reg_name = st.text_input("Full Name")
                 reg_email = st.text_input("Email Address")
                 reg_mobile = st.text_input("Mobile Number")
-                reg_pass = st.text_input("Choose Password", type="password")
-                reg_submitted = st.form_submit_button("Register Account", use_container_width=True)
+                reg_pass = st.text_input("Create Password", type="password")
+                reg_submitted = st.form_submit_button("Create Account", use_container_width=True)
                 
                 if reg_submitted:
                     if reg_name and reg_email and reg_mobile and reg_pass:
                         success = register_user(reg_name, reg_email, reg_mobile, reg_pass)
                         if success:
-                            st.success("Account created successfully! Please switch to the Login tab.")
+                            st.success("Account created successfully! Switch to Login tab.")
                         else:
-                            st.error("Email already exists!")
+                            st.error("Email already registered!")
                     else:
-                        st.warning("Please fill in all required details.")
+                        st.warning("Please fill out all details.")
     st.stop()
 
-# 5. Main App Dashboard (Accessible Only After Login)
+# 5. Main Professional Dashboard
 with st.sidebar:
-    st.markdown(f"## 👤 {st.session_state.user_name or 'User'}")
+    st.markdown(f"### 👤 {st.session_state.user_name}")
     st.caption(f"📧 {st.session_state.user_email}")
-    st.success("✨ Unlimited Access Active")
+    st.success("✨ Pro Intelligence Active")
         
     st.markdown("---")
-    st.markdown("## ⚙️ Personal AI Settings")
+    st.markdown("### ⚙️ Personal AI Customizer")
     
+    # User can select AI Persona (Coding, Prompt Engineering, etc.)
     ai_persona = st.selectbox(
-        "Choose AI Mode / Persona",
+        "Choose AI Mode",
         [
-            "Master Coding Expert (Programming Focus)",
-            "Professional Prompt Generator",
-            "General Enterprise Assistant",
-            "Creative Content Writer"
+            "Master Coding Expert (Full-Stack & Debugging)",
+            "Professional Prompt Engineer (Copy-Ready Prompts)",
+            "Enterprise Business Consultant",
+            "Creative Content & Copywriter"
         ]
     )
     
-    if ai_persona == "Master Coding Expert (Programming Focus)":
-        custom_system_instruction = "You are DasAi, an elite Master Coding Expert. Provide accurate, clean, optimized code snippets with detailed explanations in every response."
-    elif ai_persona == "Professional Prompt Generator":
-        custom_system_instruction = "You are DasAi, an expert AI Prompt Engineer. Your primary task is to generate high-quality, professional, copy-ready prompts for users based on their requests."
-    elif ai_persona == "Creative Content Writer":
-        custom_system_instruction = "You are DasAi, a creative writer specializing in engaging blogs, copywriting, and marketing text."
-    else:
-        custom_system_instruction = "You are DasAi, a helpful enterprise AI assistant built to help with all tasks."
+    # Advanced Intelligence Engine Selector (ChatGPT, Claude or Gemini style)
+    ai_engine = st.selectbox(
+        "Select Intelligence Engine",
+        ["Google Gemini Flash / Pro", "OpenAI ChatGPT-4o", "Anthropic Claude 3.5 Sonnet"]
+    )
 
-    try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
-    except Exception:
-        api_key = None
-        
-    if not api_key:
-        api_key = st.text_input("Enter Gemini API Key:", type="password")
+    # API Keys Configuration
+    api_key = ""
+    if "Gemini" in ai_engine:
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY", "")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Gemini API Key:", type="password")
+            
+    elif "ChatGPT" in ai_engine:
+        try:
+            api_key = st.secrets.get("OPENAI_API_KEY", "")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter OpenAI API Key:", type="password")
+            
+    elif "Claude" in ai_engine:
+        try:
+            api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+        except Exception:
+            pass
+        if not api_key:
+            api_key = st.text_input("Enter Anthropic API Key:", type="password")
+
+    # Define System Instructions based on user choice
+    if "Coding" in ai_persona:
+        system_prompt = "You are DasAi, an elite Principal Software Engineer. Provide complete, production-ready code with clean syntax, robust error handling, and comments. Format code properly inside markdown code blocks so users can easily copy them."
+    elif "Prompt" in ai_persona:
+        system_prompt = "You are DasAi, an expert AI Prompt Engineer. Generate highly optimized, professional, structured, and copy-ready prompts based on user requirements. Present them cleanly with a copy-friendly format."
+    elif "Business" in ai_persona:
+        system_prompt = "You are DasAi, an elite Corporate Business Consultant and Strategist. Provide sharp, data-driven, and actionable business strategies."
+    else:
+        system_prompt = "You are DasAi, an advanced multi-domain AI assistant designed to deliver high-intelligence professional answers."
 
     st.markdown("---")
-    
-    if st.button("🗑️ Clear Workspace", use_container_width=True):
+    if st.button("🗑️ Clear Chat Workspace", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-    if st.button("🚪 Logout", use_container_width=True):
-        log_activity(st.session_state.user_email, "Logged Out")
+    if st.button("🚪 Logout Session", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.user_email = ""
         st.session_state.user_name = ""
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Platform v3.4")
+    st.caption("🚀 DasAi Intelligence Core v4.0")
 
-# Header
+# App Header
 st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
-st.markdown(f'<p class="sub-header">Current Mode: <b>{ai_persona}</b></p>', unsafe_allow_html=True)
+st.markdown(f'<p class="sub-header">Mode: <b>{ai_persona}</b> | Engine: <b>{ai_engine}</b></p>', unsafe_allow_html=True)
 
+# Initialize Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Display Chat Messages with Copy-Friendly Code Blocks
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Ask DasAi..."):
+# Chat Input & Processing
+if prompt := st.chat_input("Message DasAi (Ask for code, prompts, or strategy)..."):
     if not api_key:
-        st.error("Please provide your API key in the sidebar to proceed!")
+        st.error("Please provide a valid API key in the sidebar to activate the intelligence engine!")
     else:
-        log_activity(st.session_state.user_email, f"Queried: {prompt[:30]}...")
-
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("DasAi is thinking..."):
+            with st.spinner("DasAi is analyzing and generating response..."):
                 try:
-                    genai.configure(api_key=api_key)
-                    gemini_model = genai.GenerativeModel(model_name="gemini-2.5-flash", system_instruction=custom_system_instruction)
+                    ai_response = ""
                     
-                    gemini_history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
-                    chat_session = gemini_model.start_chat(history=gemini_history)
-                    response = chat_session.send_message(prompt)
-                    ai_response = response.text
+                    # 1. Google Gemini Handling
+                    if "Gemini" in ai_engine:
+                        genai.configure(api_key=api_key)
+                        model = genai.GenerativeModel(model_name="gemini-2.5-flash", system_instruction=system_prompt)
+                        history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
+                        chat = model.start_chat(history=history)
+                        response = chat.send_message(prompt)
+                        ai_response = response.text
+
+                    # 2. OpenAI ChatGPT Handling
+                    elif "ChatGPT" in ai_engine:
+                        client = openai.OpenAI(api_key=api_key)
+                        messages_payload = [{"role": "system", "content": system_prompt}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+                        response = client.chat.completions.create(model="gpt-4o", messages=messages_payload)
+                        ai_response = response.choices[0].message.content
+
+                    # 3. Anthropic Claude Handling
+                    elif "Claude" in ai_engine:
+                        client = anthropic.Anthropic(api_key=api_key)
+                        messages_payload = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["content"]} for m in st.session_state.messages]
+                        response = client.messages.create(model="claude-3-5-sonnet-20241022", max_tokens=4000, system=system_prompt, messages=messages_payload)
+                        ai_response = response.content[0].text
 
                     st.markdown(ai_response)
                     st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                    
                 except Exception as e:
-                    st.error(f"Execution Error: {e}")
+                    st.error(f"Intelligence Execution Error: {e}")
                     
