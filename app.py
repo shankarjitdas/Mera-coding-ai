@@ -1,6 +1,5 @@
 import google.generativeai as genai
 import openai
-import requests
 import streamlit as st
 import anthropic
 
@@ -41,30 +40,26 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Control Center (Multi-AI & Smart Router)
+# 2. Sidebar Control Center (Clean Professional Layout)
 with st.sidebar:
   st.markdown("## ⚙️ DasAi SaaS Control")
   st.markdown("---")
 
-  # Select AI Engine including Auto-Select option
   ai_provider = st.selectbox(
       "Select AI Provider",
       ["Auto-Select (Smart AI)", "Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
-      help="Auto-Select aapke task ke mutabiq sabse best model khud chun lega."
   )
 
   api_key = None
   selected_model = ""
 
   if ai_provider == "Auto-Select (Smart AI)":
-    st.info("💡 Smart Router active hai! Yeh coding ke liye Pro aur normal chat ke liye Flash model automatically use karega.")
-    # Auto-Select ke liye primary key Gemini ki uthayenge (default free/fast execution)
     try:
       api_key = st.secrets.get("GEMINI_API_KEY")
     except Exception:
       pass
     if not api_key:
-      api_key = st.text_input("Enter Gemini API Key (For Smart Router):", type="password")
+      api_key = st.text_input("Enter Gemini API Key:", type="password")
 
   elif ai_provider == "Google Gemini":
     try:
@@ -105,29 +100,10 @@ with st.sidebar:
     )
 
   st.markdown("---")
-  st.markdown("### 🌤️ Live Weather Utility")
-  city_input = st.text_input("City Name:", "Silchar")
-  if st.button("Check Weather"):
-    try:
-      geo_url = f"https://nominatim.openstreetmap.org/search?q={city_input}&format=json&limit=1"
-      headers = {"User-Agent": "DasAiSaaS/1.0"}
-      geo_res = requests.get(geo_url, headers=headers).json()
-      if geo_res:
-        lat, lon = float(geo_res[0]["lat"]), float(geo_res[0]["lon"])
-        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
-        w_res = requests.get(weather_url).json()
-        curr = w_res["current"]
-        st.success(
-            f"📍 **{city_input.capitalize()}**\n\n- Temp:"
-            f" **{curr['temperature_2m']}°C**\n- Humidity:"
-            f" **{curr['relative_humidity_2m']}%**"
-        )
-      else:
-        st.error("Location not found.")
-    except Exception as e:
-      st.error(f"Error fetching weather: {e}")
+  st.markdown("### 🤖 DasAi Workspace")
+  st.markdown("- **Status:** Online & Secure")
+  st.markdown("- **Mode:** Enterprise Ready")
 
-  st.markdown("---")
   if st.button("🗑️ Clear Workspace", use_container_width=True):
     st.session_state.messages = []
     st.rerun()
@@ -175,13 +151,11 @@ if prompt := st.chat_input(
   if not api_key:
     st.error(f"Kripya pehle sidebar mein API key provide karein!")
   else:
-    # Determine Active Provider & Model (Smart Routing Logic)
     active_provider = ai_provider
     active_model = selected_model
 
     if ai_provider == "Auto-Select (Smart AI)":
       active_provider = "Google Gemini"
-      # Smart Logic: Check if prompt is complex (coding, architecture, long text)
       coding_keywords = ["code", "python", "javascript", "error", "bug", "build", "script", "app", "database", "api"]
       is_complex = any(kw in prompt.lower() for kw in coding_keywords) or len(prompt) > 120
       
@@ -190,7 +164,6 @@ if prompt := st.chat_input(
       else:
         active_model = "gemini-3.8-flash"
 
-    # Display real-time active model indicator badge for the user
     st.info(f"🟢 **Active Engine:** {active_provider} (`{active_model}`)")
 
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -202,7 +175,6 @@ if prompt := st.chat_input(
         try:
           ai_response = ""
 
-          # --- Google Gemini Execution (Supports Auto-Select & Manual Gemini) ---
           if active_provider == "Google Gemini":
             genai.configure(api_key=api_key)
             gemini_model = genai.GenerativeModel(
@@ -216,7 +188,6 @@ if prompt := st.chat_input(
             response = chat_session.send_message(prompt)
             ai_response = response.text
 
-          # --- OpenAI ChatGPT Execution ---
           elif active_provider == "OpenAI ChatGPT":
             client = openai.OpenAI(api_key=api_key)
             openai_messages = [
@@ -231,7 +202,6 @@ if prompt := st.chat_input(
             )
             ai_response = response.choices[0].message.content
 
-          # --- Anthropic Claude Execution ---
           elif active_provider == "Anthropic Claude":
             client = anthropic.Anthropic(api_key=api_key)
             claude_messages = []
@@ -246,7 +216,6 @@ if prompt := st.chat_input(
             )
             ai_response = response.content[0].text
 
-          # Render Output with Native Code-Block Copy Buttons
           st.markdown(ai_response)
           st.session_state.messages.append(
               {"role": "assistant", "content": ai_response}
