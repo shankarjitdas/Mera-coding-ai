@@ -16,6 +16,12 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Hide Streamlit Default Menu, Footer & Branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Global Styling for Professional Look */
     .stApp {
         background-color: #131314;
         color: #e3e3e3;
@@ -48,7 +54,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Database Setup
+# 2. Database Setup with Admin Column & Logs
 def init_db():
     conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
@@ -58,7 +64,16 @@ def init_db():
             name TEXT,
             email TEXT UNIQUE,
             mobile TEXT,
-            password TEXT
+            password TEXT,
+            is_admin INTEGER DEFAULT 0
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT,
+            action TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     conn.commit()
@@ -73,8 +88,13 @@ def register_user(name, email, mobile, password):
     try:
         conn = sqlite3.connect("dasai_professional.db")
         c = conn.cursor()
-        c.execute("INSERT INTO users (name, email, mobile, password) VALUES (?, ?, ?, ?)",
-                  (name, email, mobile, hash_password(password)))
+        # Check if this is the very first user, make them Admin automatically
+        c.execute("SELECT COUNT(*) FROM users")
+        count = c.fetchone()[0]
+        is_admin_val = 1 if count == 0 else 0
+
+        c.execute("INSERT INTO users (name, email, mobile, password, is_admin) VALUES (?, ?, ?, ?, ?)",
+                  (name, email, mobile, hash_password(password), is_admin_val))
         conn.commit()
         conn.close()
         return True
@@ -89,18 +109,42 @@ def verify_user(email, password):
     conn.close()
     return user
 
-# 3. Session State Management with Query Params (Fixes Refresh Logout Issue)
+def log_activity(email, action):
+    conn = sqlite3.connect("dasai_professional.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO activity_logs (email, action) VALUES (?, ?)", (email, action))
+    conn.commit()
+    conn.close()
+
+def get_all_users():
+    conn = sqlite3.connect("dasai_professional.db")
+    c = conn.cursor()
+    c.execute("SELECT id, name, email, mobile, is_admin FROM users")
+    users = c.fetchall()
+    conn.close()
+    return users
+
+def get_activity_logs():
+    conn = sqlite3.connect("dasai_professional.db")
+    c = conn.cursor()
+    c.execute("SELECT email, action, timestamp FROM activity_logs ORDER BY id DESC LIMIT 50")
+    logs = c.fetchall()
+    conn.close()
+    return logs
+
+# 3. Session State Management with Query Params
 if "logged_in" not in st.session_state:
-    # Check if user session token exists in URL params to persist across refreshes
     query_params = st.query_params
     if "user" in query_params and "name" in query_params:
         st.session_state.logged_in = True
         st.session_state.user_email = query_params["user"]
         st.session_state.user_name = query_params["name"]
+        st.session_state.is_admin = int(query_params.get("is_admin", 0))
     else:
         st.session_state.logged_in = False
         st.session_state.user_email = ""
         st.session_state.user_name = ""
+        st.session_state.is_admin = 0
 
 # 4. Authentication Flow
 if not st.session_state.logged_in:
@@ -125,15 +169,17 @@ if not st.session_state.logged_in:
                             st.session_state.logged_in = True
                             st.session_state.user_email = login_email
                             st.session_state.user_name = user[1]
+                            st.session_state.is_admin = user[5]  # is_admin column index
                             
-                            # Save login state in URL parameters so refresh doesn't log out user
                             st.query_params["user"] = login_email
                             st.query_params["name"] = user[1]
+                            st.query_params["is_admin"] = str(user[5])
                             
+                            log_activity(login_email, "Logged In Successfully")
                             st.success("Authentication Successful!")
                             st.rerun()
                         else:
-                            st.error("Invalid Email or Password! (Note: Ensure you register first if using a new database)")
+                            st.error("Invalid Email or Password! (First registered user becomes Admin automatically)")
                     else:
                         st.warning("Please fill in all fields.")
                     
@@ -150,70 +196,83 @@ if not st.session_state.logged_in:
                     if reg_name and reg_email and reg_mobile and reg_pass:
                         success = register_user(reg_name, reg_email, reg_mobile, reg_pass)
                         if success:
-                            st.success("Account created successfully! Switch to Login tab.")
+                            st.success("Account created successfully! Switch to Login tab. (Note: First user is Admin)")
                         else:
                             st.error("Email already registered!")
                     else:
                         st.warning("Please fill out all details.")
     st.stop()
 
-# 5. Main Professional Dashboard
+# 5. Main Professional Dashboard & Admin Panel
 with st.sidebar:
     st.markdown(f"### 👤 {st.session_state.user_name}")
     st.caption(f"📧 {st.session_state.user_email}")
-    st.success("✨ Pro Intelligence Active")
+    
+    if st.session_state.is_admin == 1:
+        st.error("👑 ADMIN MODE ACTIVE")
+    else:
+        st.success("✨ Pro Intelligence Active")
         
     st.markdown("---")
-    st.markdown("### ⚙️ Personal AI Customizer")
     
-    ai_persona = st.selectbox(
-        "Choose AI Mode",
-        [
-            "Master Coding Expert (Full-Stack & Debugging)",
-            "Professional Prompt Engineer (Copy-Ready Prompts)",
-            "Enterprise Business Consultant",
-            "Creative Content & Copywriter"
-        ]
-    )
-    
-    ai_engine = st.selectbox(
-        "Select Intelligence Engine",
-        ["Google Gemini Flash / Pro", "OpenAI ChatGPT-4o", "Anthropic Claude 3.5 Sonnet"]
-    )
-
-    api_key = ""
-    if "Gemini" in ai_engine:
-        try:
-            api_key = st.secrets.get("GEMINI_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = st.text_input("Enter Gemini API Key:", type="password")
-            
-    elif "ChatGPT" in ai_engine:
-        try:
-            api_key = st.secrets.get("OPENAI_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = st.text_input("Enter OpenAI API Key:", type="password")
-            
-    elif "Claude" in ai_engine:
-        try:
-            api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
-        except Exception:
-            pass
-        if not api_key:
-            api_key = st.text_input("Enter Anthropic API Key:", type="password")
-
-    if "Coding" in ai_persona:
-        system_prompt = "You are DasAi, an elite Principal Software Engineer. Provide complete, production-ready code with clean syntax, robust error handling, and comments."
-    elif "Prompt" in ai_persona:
-        system_prompt = "You are DasAi, an expert AI Prompt Engineer. Generate highly optimized, professional, structured, and copy-ready prompts based on user requirements."
-    elif "Business" in ai_persona:
-        system_prompt = "You are DasAi, an elite Corporate Business Consultant and Strategist. Provide sharp, data-driven, and actionable business strategies."
+    # --- ADMIN PANEL SECTION ---
+    if st.session_state.is_admin == 1:
+        st.markdown("### 👑 Admin Control Center")
+        admin_action = st.radio("Admin Menu", ["AI Workspace", "Manage Users", "View Activity Logs"])
+        st.markdown("---")
     else:
-        system_prompt = "You are DasAi, an advanced multi-domain AI assistant designed to deliver high-intelligence professional answers."
+        admin_action = "AI Workspace"
+
+    if st.session_state.is_admin == 0 or admin_action == "AI Workspace":
+        st.markdown("### ⚙️ Personal AI Customizer")
+        ai_persona = st.selectbox(
+            "Choose AI Mode",
+            [
+                "Master Coding Expert (Full-Stack & Debugging)",
+                "Professional Prompt Engineer (Copy-Ready Prompts)",
+                "Enterprise Business Consultant",
+                "Creative Content & Copywriter"
+            ]
+        )
+        
+        ai_engine = st.selectbox(
+            "Select Intelligence Engine",
+            ["Google Gemini Flash / Pro", "OpenAI ChatGPT-4o", "Anthropic Claude 3.5 Sonnet"]
+        )
+
+        api_key = ""
+        if "Gemini" in ai_engine:
+            try:
+                api_key = st.secrets.get("GEMINI_API_KEY", "")
+            except Exception:
+                pass
+            if not api_key:
+                api_key = st.text_input("Enter Gemini API Key:", type="password")
+                
+        elif "ChatGPT" in ai_engine:
+            try:
+                api_key = st.secrets.get("OPENAI_API_KEY", "")
+            except Exception:
+                pass
+            if not api_key:
+                api_key = st.text_input("Enter OpenAI API Key:", type="password")
+                
+        elif "Claude" in ai_engine:
+            try:
+                api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+            except Exception:
+                pass
+            if not api_key:
+                api_key = st.text_input("Enter Anthropic API Key:", type="password")
+
+        if "Coding" in ai_persona:
+            system_prompt = "You are DasAi, an elite Principal Software Engineer. Provide complete, production-ready code with clean syntax, robust error handling, and comments."
+        elif "Prompt" in ai_persona:
+            system_prompt = "You are DasAi, an expert AI Prompt Engineer. Generate highly optimized, professional, structured, and copy-ready prompts based on user requirements."
+        elif "Business" in ai_persona:
+            system_prompt = "You are DasAi, an elite Corporate Business Consultant and Strategist. Provide sharp, data-driven, and actionable business strategies."
+        else:
+            system_prompt = "You are DasAi, an advanced multi-domain AI assistant designed to deliver high-intelligence professional answers."
 
     st.markdown("---")
     if st.button("🗑️ Clear Chat Workspace", use_container_width=True):
@@ -221,18 +280,37 @@ with st.sidebar:
         st.rerun()
 
     if st.button("🚪 Logout Session", use_container_width=True):
-        # Clear query params and session state on logout
+        log_activity(st.session_state.user_email, "Logged Out")
         st.query_params.clear()
         st.session_state.logged_in = False
         st.session_state.user_email = ""
         st.session_state.user_name = ""
+        st.session_state.is_admin = 0
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Intelligence Core v4.1")
+    st.caption("🚀 DasAi Intelligence Core v4.3")
 
-# App Header
+# App Header & Main Views
 st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
+
+# If Admin selected "Manage Users" or "View Activity Logs"
+if st.session_state.is_admin == 1 and admin_action == "Manage Users":
+    st.subheader("👥 Registered Platform Users")
+    users = get_all_users()
+    for u in users:
+        role_badge = "👑 Admin" if u[4] == 1 else "👤 User"
+        st.info(f"**ID:** {u[0]} | **Name:** {u[1]} | **Email:** {u[2]} | **Mobile:** {u[3]} | **Role:** {role_badge}")
+    st.stop()
+
+elif st.session_state.is_admin == 1 and admin_action == "View Activity Logs":
+    st.subheader("📊 System Activity Logs")
+    logs = get_activity_logs()
+    for log in logs:
+        st.write(f"🕒 `{log[2]}` — **{log[0]}**: {log[1]}")
+    st.stop()
+
+# Normal Chat View
 st.markdown(f'<p class="sub-header">Mode: <b>{ai_persona}</b> | Engine: <b>{ai_engine}</b></p>', unsafe_allow_html=True)
 
 if "messages" not in st.session_state:
@@ -246,6 +324,7 @@ if prompt := st.chat_input("Message DasAi (Ask for code, prompts, or strategy)..
     if not api_key:
         st.error("Please provide a valid API key in the sidebar to activate the intelligence engine!")
     else:
+        log_activity(st.session_state.user_email, f"Queried: {prompt[:25]}...")
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
