@@ -3,12 +3,12 @@ import openai
 import streamlit as st
 import anthropic
 
-# 1. Page Configuration & Enterprise Styling with Center RGB Animation
+# 1. Page Configuration & Enterprise Styling with Center RGB Animation & Collapsible Sidebar
 st.set_page_config(
     page_title="DasAi - Professional SaaS AI Agent",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",  # Sidebar default closed with 3-line menu
 )
 
 # Custom High-End SaaS UI Styling with Centered Big RGB Header
@@ -42,15 +42,12 @@ st.markdown(
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border-left: 4px solid #3B82F6;
     }
-    .stSidebar {
-        background-color: #F9FAFB;
-    }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Control Center
+# 2. Sidebar Control Center (Opens via 3-Line Menu)
 with st.sidebar:
   st.markdown("## ⚙️ DasAi SaaS Control")
   st.markdown("---")
@@ -157,7 +154,7 @@ for message in st.session_state.messages:
 # 6. Main Interaction Loop with "Ask DasAi..." Placeholder & Smart Routing
 if prompt := st.chat_input("Ask DasAi..."):
   if not api_key:
-    st.error(f"Kripya pehle sidebar mein API key provide karein!")
+    st.error(f"Kripya pehle sidebar (3-line menu) mein API key provide karein!")
   else:
     active_provider = ai_provider
     active_model = selected_model
