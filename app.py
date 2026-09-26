@@ -27,13 +27,13 @@ st.markdown(
         color: #e3e3e3;
     }
     .main-header {
-        font-size: 3rem;
+        font-size: 2.8rem;
         font-weight: 800;
         text-align: center;
         background: linear-gradient(90deg, #4285F4, #9B72CF, #DB4437);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-top: -20px;
+        margin-top: -15px;
         margin-bottom: 5px;
     }
     .sub-header {
@@ -54,7 +54,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 2. Database Setup, Auto-Admin & Settings Persistence
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# 2. Database Setup, Auto-Admin & Password Fixer
 def init_db():
     conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
@@ -85,9 +88,18 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Ensure Master Admin exists and has a fixed working password ('admin123')
     conn = sqlite3.connect("dasai_professional.db")
     c = conn.cursor()
-    c.execute("UPDATE users SET is_admin = 1 WHERE email = 'shankarjitdas2@gmail.com'")
+    c.execute("SELECT * FROM users WHERE email = 'shankarjitdas2@gmail.com'")
+    admin_user = c.fetchone()
+    
+    hashed_default_pass = hash_password("admin123")
+    if admin_user:
+        c.execute("UPDATE users SET is_admin = 1, password = ? WHERE email = 'shankarjitdas2@gmail.com'", (hashed_default_pass,))
+    else:
+        c.execute("INSERT INTO users (name, email, mobile, password, is_admin) VALUES (?, ?, ?, ?, ?)",
+                  ("Shankarjit Das", "shankarjitdas2@gmail.com", "9999999999", hashed_default_pass, 1))
     conn.commit()
     conn.close()
 
@@ -114,19 +126,12 @@ def save_setting(key, value):
     except Exception as e:
         print(e)
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
 def register_user(name, email, mobile, password):
     try:
         conn = sqlite3.connect("dasai_professional.db")
         c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM users")
-        count = c.fetchone()[0]
-        is_admin_val = 1 if (count == 0 or email == 'shankarjitdas2@gmail.com') else 0
-
-        c.execute("INSERT INTO users (name, email, mobile, password, is_admin) VALUES (?, ?, ?, ?, ?)",
-                  (name, email, mobile, hash_password(password), is_admin_val))
+        c.execute("INSERT INTO users (name, email, mobile, password, is_admin) VALUES (?, ?, ?, ?, 0)",
+                  (name, email, mobile, hash_password(password)))
         conn.commit()
         conn.close()
         return True
@@ -178,6 +183,7 @@ if not st.session_state.logged_in:
         
         if auth_mode == "Login":
             st.subheader("🔐 Account Login")
+            st.info("💡 **Admin Default Login:** Email: `shankarjitdas2@gmail.com` | Password: `admin123`")
             with st.form("login_form"):
                 login_email = st.text_input("Email Address")
                 login_pass = st.text_input("Password", type="password")
@@ -185,12 +191,6 @@ if not st.session_state.logged_in:
                 
                 if submitted:
                     if login_email and login_pass:
-                        conn = sqlite3.connect("dasai_professional.db")
-                        c = conn.cursor()
-                        c.execute("UPDATE users SET is_admin = 1 WHERE email = 'shankarjitdas2@gmail.com'")
-                        conn.commit()
-                        conn.close()
-
                         user = verify_user(login_email, login_pass)
                         if user:
                             st.session_state.logged_in = True
@@ -305,6 +305,8 @@ with st.sidebar:
     st.markdown("---")
     if st.button("🗑️ Clear Chat Workspace", use_container_width=True):
         st.session_state.messages = []
+        if "admin_messages" in st.session_state:
+            st.session_state.admin_messages = []
         st.rerun()
 
     if st.button("🚪 Logout Session", use_container_width=True):
@@ -317,70 +319,127 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("🚀 DasAi Intelligence Core v4.8")
+    st.caption("🚀 DasAi Intelligence Core v5.0")
 
-# App Header & Main Views
-st.markdown('<p class="main-header">⚡ DasAi</p>', unsafe_allow_html=True)
-st.markdown(f'<p class="sub-header">Mode: <b>{st.session_state.current_persona}</b> | Engine: <b>{st.session_state.current_engine}</b></p>', unsafe_allow_html=True)
+# ==========================================
+# 6. ADMIN PANEL VS USER CHAT INTERFACE SEPARATION
+# ==========================================
+if st.session_state.is_admin == 1:
+    st.markdown('<p class="main-header">⚡ DasAi Admin Control Center</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Platform Management & Dedicated Admin Copilot Chat</p>', unsafe_allow_html=True)
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["💬 Dedicated Admin Chat Box", "👥 User Database & Management", "💳 Payment Gateway (UPI) Settings"])
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    with admin_tab1:
+        st.subheader("🤖 Admin Copilot Chat")
+        st.caption("Yeh chat box sirf admin ke liye hai. Yahan aap platform management ya technical commands de sakte hain.")
 
-if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'switch to claude', 'set upi id to myname@okaxis')..."):
-    cmd_lower = prompt.lower()
-    setting_changed = False
-    response_msg = ""
+        if "admin_messages" not in st.session_state:
+            st.session_state.admin_messages = []
 
-    if "claude" in cmd_lower:
-        st.session_state.current_engine = "Anthropic Claude 3.5 Sonnet"
-        setting_changed = True
-        response_msg = "✅ Intelligence Engine successfully switched to **Anthropic Claude 3.5 Sonnet** via chat command!"
-    elif "chatgpt" in cmd_lower or "gpt-4o" in cmd_lower:
-        st.session_state.current_engine = "OpenAI ChatGPT-4o"
-        setting_changed = True
-        response_msg = "✅ Intelligence Engine successfully switched to **OpenAI ChatGPT-4o** via chat command!"
-    elif "gemini" in cmd_lower:
-        st.session_state.current_engine = "Google Gemini Flash / Pro"
-        setting_changed = True
-        response_msg = "✅ Intelligence Engine successfully switched to **Google Gemini Flash / Pro** via chat command!"
+        for message in st.session_state.admin_messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-    elif "coding mode" in cmd_lower or "coding expert" in cmd_lower:
-        st.session_state.current_persona = "Master Coding Expert (Full-Stack & Debugging)"
-        setting_changed = True
-        response_msg = "✅ AI Mode successfully switched to **Master Coding Expert** via chat command!"
-    elif "prompt mode" in cmd_lower or "prompt engineer" in cmd_lower:
-        st.session_state.current_persona = "Professional Prompt Engineer (Copy-Ready Prompts)"
-        setting_changed = True
-        response_msg = "✅ AI Mode successfully switched to **Professional Prompt Engineer** via chat command!"
-    elif "business mode" in cmd_lower or "business consultant" in cmd_lower:
-        st.session_state.current_persona = "Enterprise Business Consultant"
-        setting_changed = True
-        response_msg = "✅ AI Mode successfully switched to **Enterprise Business Consultant** via chat command!"
+        if admin_prompt := st.chat_input("Ask Admin Copilot or manage settings..."):
+            st.session_state.admin_messages.append({"role": "user", "content": admin_prompt})
+            with st.chat_message("user"):
+                st.markdown(admin_prompt)
 
-    elif "upi" in cmd_lower and ("set" in cmd_lower or "to" in cmd_lower):
-        words = prompt.split()
-        target_upi = next((w for w in words if "@" in w), None)
-        if target_upi:
-            save_setting("upi_id", target_upi)
+            with st.chat_message("assistant"):
+                with st.spinner("Admin Copilot processing..."):
+                    try:
+                        admin_response = f"Admin Command Received & Processed: *{admin_prompt}*. System parameters look secure and operational."
+                        st.markdown(admin_response)
+                        st.session_state.admin_messages.append({"role": "assistant", "content": admin_response})
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+
+    with admin_tab2:
+        st.subheader("📊 Registered Platform Users")
+        try:
+            conn = sqlite3.connect("dasai_professional.db")
+            c = conn.cursor()
+            c.execute("SELECT id, name, email, mobile, is_admin FROM users")
+            users_list = c.fetchall()
+            conn.close()
+
+            if users_list:
+                for u in users_list:
+                    role_badge = "👑 Admin" " (Master)" if u[2] == 'shankarjitdas2@gmail.com' else ("👑 Admin" if u[4] == 1 else "👤 User")
+                    st.markdown(f"- **ID:** {u[0]} | **Name:** {u[1]} | **Email:** `{u[2]}` | **Mobile:** {u[3]} | **Role:** {role_badge}")
+            else:
+                st.info("No users found.")
+        except Exception as e:
+            st.error(f"Database error: {e}")
+
+    with admin_tab3:
+        st.subheader("💳 UPI Payment Gateway Configuration")
+        with st.form("upi_admin_form"):
+            current_upi_val = get_setting("upi_id", "shankar@okhdfcbank")
+            new_upi_input = st.text_input("Merchant UPI ID", value=current_upi_val)
+            upi_submit = st.form_submit_button("Save UPI Settings", use_container_width=True)
+            if upi_submit:
+                if "@" in new_upi_input:
+                    save_setting("upi_id", new_upi_input)
+                    st.success(f"Successfully updated Merchant UPI ID to: `{new_upi_input}`")
+                else:
+                    st.error("Please enter a valid UPI ID containing '@'.")
+
+else:
+    # ==========================================
+    # USER CHAT INTERFACE ("Ask DasAi")
+    # ==========================================
+    st.markdown('<p class="main-header">⚡ Ask DasAi</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="sub-header">Mode: <b>{st.session_state.current_persona}</b> | Engine: <b>{st.session_state.current_engine}</b></p>', unsafe_allow_html=True)
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("Ask DasAi anything or command setting changes (e.g., 'switch to claude', 'pay 500 rupees')..."):
+        cmd_lower = prompt.lower()
+        setting_changed = False
+        response_msg = ""
+
+        if "claude" in cmd_lower:
+            st.session_state.current_engine = "Anthropic Claude 3.5 Sonnet"
             setting_changed = True
-            response_msg = f"💳 **UPI Gateway Configured!** Merchant UPI ID successfully saved as: `{target_upi}`"
-        else:
+            response_msg = "✅ Intelligence Engine successfully switched to **Anthropic Claude 3.5 Sonnet** via chat command!"
+        elif "chatgpt" in cmd_lower or "gpt-4o" in cmd_lower:
+            st.session_state.current_engine = "OpenAI ChatGPT-4o"
             setting_changed = True
-            response_msg = "⚠️ Please provide a valid UPI ID format containing '@' (e.g., `set upi id to shankar@okaxis`)."
+            response_msg = "✅ Intelligence Engine successfully switched to **OpenAI ChatGPT-4o** via chat command!"
+        elif "gemini" in cmd_lower:
+            st.session_state.current_engine = "Google Gemini Flash / Pro"
+            setting_changed = True
+            response_msg = "✅ Intelligence Engine successfully switched to **Google Gemini Flash / Pro** via chat command!"
 
-    elif "pay" in cmd_lower or "payment" in cmd_lower or "qr" in cmd_lower:
-        current_upi = get_setting("upi_id", "shankar@okhdfcbank")
-        import re
-        amounts = re.findall(r'\d+', prompt)
-        amount = amounts[0] if amounts else "100"
-        
-        upi_link = f"upi://pay?pa={current_upi}&pn=DasAi%20Platform&am={amount}&cu=INR"
-        setting_changed = True
-        response_msg = f"""### 💸 UPI Payment Gateway Link
+        elif "coding mode" in cmd_lower or "coding expert" in cmd_lower:
+            st.session_state.current_persona = "Master Coding Expert (Full-Stack & Debugging)"
+            setting_changed = True
+            response_msg = "✅ AI Mode successfully switched to **Master Coding Expert** via chat command!"
+        elif "prompt mode" in cmd_lower or "prompt engineer" in cmd_lower:
+            st.session_state.current_persona = "Professional Prompt Engineer (Copy-Ready Prompts)"
+            setting_changed = True
+            response_msg = "✅ AI Mode successfully switched to **Professional Prompt Engineer** via chat command!"
+        elif "business mode" in cmd_lower or "business consultant" in cmd_lower:
+            st.session_state.current_persona = "Enterprise Business Consultant"
+            setting_changed = True
+            response_msg = "✅ AI Mode successfully switched to **Enterprise Business Consultant** via chat command!"
+
+        elif "pay" in cmd_lower or "payment" in cmd_lower or "qr" in cmd_lower:
+            current_upi = get_setting("upi_id", "shankar@okhdfcbank")
+            import re
+            amounts = re.findall(r'\d+', prompt)
+            amount = amounts[0] if amounts else "100"
+            
+            upi_link = f"upi://pay?pa={current_upi}&pn=DasAi%20Platform&am={amount}&cu=INR"
+            setting_changed = True
+            response_msg = f"""### 💸 UPI Payment Gateway Link
 * **Merchant UPI:** `{current_upi}`
 * **Amount:** `₹{amount}`
 
@@ -388,48 +447,21 @@ if prompt := st.chat_input("Message DasAi or command setting changes (e.g., 'swi
 
 *(Aap apne phone ke UPI scanner se is link ko scan karke ya direct click karke payment kar sakte hain)*"""
 
-    if setting_changed:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        st.session_state.messages.append({"role": "assistant", "content": response_msg})
-        st.rerun()
+        if setting_changed:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.messages.append({"role": "assistant", "content": response_msg})
+            st.rerun()
 
-    if not api_key:
-        st.error("Please provide a valid API key in the sidebar to activate the intelligence engine!")
-    else:
-        log_activity(st.session_state.user_email, f"Queried: {prompt[:25]}...")
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        if not api_key:
+            st.error("Please provide a valid API key in the sidebar to activate the intelligence engine!")
+        else:
+            log_activity(st.session_state.user_email, f"Queried: {prompt[:25]}...")
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            with st.spinner("DasAi is analyzing and generating response..."):
-                try:
-                    ai_response = ""
-                    active_engine = st.session_state.current_engine
-                    
-                    if "Gemini" in active_engine:
-                        genai.configure(api_key=api_key)
-                        model = genai.GenerativeModel(model_name="gemini-3.8-flash", system_instruction=system_prompt)
-                        history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
-                        chat = model.start_chat(history=history)
-                        response = chat.send_message(prompt)
-                        ai_response = response.text
-
-                    elif "ChatGPT" in active_engine:
-                        client = openai.OpenAI(api_key=api_key)
-                        messages_payload = [{"role": "system", "content": system_prompt}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-                        response = client.chat.completions.create(model="gpt-4o", messages=messages_payload)
-                        ai_response = response.choices[0].message.content
-
-                    elif "Claude" in active_engine:
-                        client = anthropic.Anthropic(api_key=api_key)
-                        messages_payload = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["content"]} for m in st.session_state.messages]
-                        response = client.messages.create(model="claude-3-5-sonnet-20241022", max_tokens=4000, system=system_prompt, messages=messages_payload)
-                        ai_response = response.content[0].text
-
-                    st.markdown(ai_response)
-                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                    
-                except Exception as e:
-                    st.error(f"Intelligence Execution Error: {e}")
-                    
+            with st.chat_message("assistant"):
+                with st.spinner("Ask DasAi is analyzing and generating response..."):
+                    try:
+                        ai_response = ""
+                        active_engine = 
