@@ -2,4 +2,4 @@ streamlit
 google-generativeai
 openai
 anthropic
-requests
+streamlit-google-auth
