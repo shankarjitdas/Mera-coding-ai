@@ -3,7 +3,7 @@ import openai
 import streamlit as st
 import anthropic
 
-# 1. Page Configuration & Enterprise Styling with RGB Color Animation
+# 1. Page Configuration & Enterprise Styling with Center RGB Animation
 st.set_page_config(
     page_title="DasAi - Professional SaaS AI Agent",
     page_icon="⚡",
@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom High-End SaaS UI Styling with RGB Auto-Color Animation
+# Custom High-End SaaS UI Styling with Centered Big RGB Header
 st.markdown(
     """
     <style>
@@ -21,22 +21,19 @@ st.markdown(
         66% { color: #10B981; }    /* Green */
         100% { color: #EF4444; }   /* Red */
     }
-    @keyframes rgbBorder {
-        0% { border-color: #EF4444; }
-        33% { border-color: #3B82F6; }
-        66% { border-color: #10B981; }
-        100% { border-color: #EF4444; }
-    }
     .main-header {
-        font-size: 3rem;
-        font-weight: 800;
+        font-size: 4rem;
+        font-weight: 900;
+        text-align: center;
         animation: rgbGlow 6s infinite;
+        margin-top: -10px;
         margin-bottom: 0px;
     }
     .sub-header {
         font-size: 1.1rem;
         color: #4B5563;
-        margin-bottom: 25px;
+        text-align: center;
+        margin-bottom: 30px;
     }
     .stChatMessage {
         padding: 16px;
@@ -124,7 +121,7 @@ with st.sidebar:
   st.markdown("---")
   st.caption("🚀 DasAi SaaS Platform v2.0")
 
-# 3. Main SaaS Header (Simplified to DasAi with RGB Animation)
+# 3. Main SaaS Header (Centered, Big & Bold with RGB Animation)
 st.markdown(
     '<p class="main-header">⚡ DasAi</p>',
     unsafe_allow_html=True,
