@@ -4,51 +4,54 @@ import requests
 import streamlit as st
 import anthropic
 
-# 1. Page Configuration & Professional Layout
+# 1. Page Configuration & Enterprise Styling
 st.set_page_config(
-    page_title="DasAi - Multi-AI Universal Assistant",
-    page_icon="🤖",
+    page_title="DasAi - Professional SaaS AI Agent",
+    page_icon="⚡",  # Professional SaaS Icon
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling for UI Cleanliness
+# Custom High-End SaaS UI Styling
 st.markdown(
     """
     <style>
     .main-header {
-        font-size: 2.3rem;
+        font-size: 2.5rem;
         font-weight: 800;
-        color: #ff4b4b;
+        color: #1E3A8A;
         margin-bottom: 0px;
     }
     .sub-header {
         font-size: 1.1rem;
-        color: #666666;
-        margin-bottom: 20px;
+        color: #4B5563;
+        margin-bottom: 25px;
     }
     .stChatMessage {
-        padding: 15px;
-        border-radius: 12px;
+        padding: 16px;
+        border-radius: 14px;
         margin-bottom: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .stSidebar {
+        background-color: #F9FAFB;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# 2. Sidebar Settings & Multi-AI Control Panel
+# 2. Sidebar Control Center (Multi-AI & Utilities)
 with st.sidebar:
-  st.markdown("## ⚙️ DasAi Multi-AI Panel")
+  st.markdown("## ⚙️ DasAi SaaS Control")
   st.markdown("---")
 
-  # Model Provider Selection
+  # Select AI Engine
   ai_provider = st.selectbox(
       "Select AI Provider",
       ["Google Gemini", "OpenAI ChatGPT", "Anthropic Claude"],
   )
 
-  # Dynamic API Key inputs based on selected provider
   api_key = None
   selected_model = ""
 
@@ -91,12 +94,12 @@ with st.sidebar:
     )
 
   st.markdown("---")
-  st.markdown("### 🌤️ Live Weather Tool")
-  city_input = st.text_input("Check City Weather:", "Delhi")
-  if st.button("Fetch Live Weather"):
+  st.markdown("### 🌤️ Live Weather Utility")
+  city_input = st.text_input("City Name:", "Silchar")
+  if st.button("Check Weather"):
     try:
       geo_url = f"https://nominatim.openstreetmap.org/search?q={city_input}&format=json&limit=1"
-      headers = {"User-Agent": "DasAiApp/1.0"}
+      headers = {"User-Agent": "DasAiSaaS/1.0"}
       geo_res = requests.get(geo_url, headers=headers).json()
       if geo_res:
         lat, lon = float(geo_res[0]["lat"]), float(geo_res[0]["lon"])
@@ -104,56 +107,64 @@ with st.sidebar:
         w_res = requests.get(weather_url).json()
         curr = w_res["current"]
         st.success(
-            f"📍 **{city_input.capitalize()}**\n\n- Temp: **{curr['temperature_2m']}°C**\n- Humidity:"
-            f" **{curr['relative_humidity_2m']}%**\n- Wind:"
-            f" **{curr['wind_speed_10m']} km/h**"
+            f"📍 **{city_input.capitalize()}**\n\n- Temp:"
+            f" **{curr['temperature_2m']}°C**\n- Humidity:"
+            f" **{curr['relative_humidity_2m']}%**"
         )
       else:
-        st.error("City nahi mili!")
+        st.error("Location not found.")
     except Exception as e:
-      st.error(f"Weather fetch karne mein error: {e}")
+      st.error(f"Error fetching weather: {e}")
 
   st.markdown("---")
-  if st.button("🗑️ Clear Chat History", use_container_width=True):
+  if st.button("🗑️ Clear Workspace", use_container_width=True):
     st.session_state.messages = []
     st.rerun()
 
-  st.caption("🚀 Multi-AI Powered by Streamlit")
+  st.markdown("---")
+  st.caption("🚀 DasAi SaaS Platform v2.0")
 
-# 3. Main Header Interface
+# 3. Main SaaS Header
 st.markdown(
-    '<p class="main-header">🤖 DasAi Multi-AI Assistant</p>',
+    '<p class="main-header">⚡ DasAi Professional SaaS Agent</p>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<p class="sub-header">Switch between Gemini, ChatGPT, and Claude models seamlessly in one unified interface.</p>',
+    '<p class="sub-header">Your Enterprise-grade AI powerhouse for multi-language coding, software architecture, automated workflows, and digital business scaling.</p>',
     unsafe_allow_html=True,
 )
 
-# 4. Master Universal System Prompt Instruction
+# 4. Master SaaS System Prompt
 system_instruction = """
-You are DasAi, an elite, highly intelligent, and multi-disciplinary Universal AI Assistant 
-and Principal System Architect. You possess expert-level knowledge across a massive range of domains:
-1. Software Engineering & Coding (Python, JS, Web Dev, DB, Architecture).
-2. Mobile/Device Utilities, Travel, Healthcare (CMC Vellore), and Government Services.
-3. Digital Content Creation, YouTube/Facebook Monetization, and Business Strategy.
-Provide clean, structured responses and proper markdown code blocks with copy features. Answer accurately in English or Hinglish.
+You are DasAi, an elite Principal Software Engineer, Enterprise SaaS Architect, and Multi-Domain AI Expert. 
+Your core competencies include:
+1. Advanced Coding & Full-Stack Development: Python, JavaScript, React, Streamlit, HTML/CSS, SQL databases, API integrations, debugging, and secure system design.
+2. SaaS Scaling & Monetization: Subscription models, payment gateways (Stripe/Razorpay), user management, and digital product strategies.
+3. Mobile & Daily Utilities: Device settings, diagnostics, document handling, and live information processing.
+4. Business & Content Growth: YouTube optimization, Facebook monetization, SEO, marketing automation, and Amazon KDP workflows.
+
+Response Guidelines:
+- Write clean, highly optimized, production-ready code with clear language markdown specifiers (e.g., python, javascript) so users can instantly use the built-in copy features.
+- Maintain an expert yet supportive tone. Communicate fluently in English or Hinglish according to user preference.
 """
 
-# 5. Session Chat Management
+# 5. Session State Initialization
 if "messages" not in st.session_state:
   st.session_state.messages = []
 
-# Display Messages
+# Display Chat History
 for message in st.session_state.messages:
   with st.chat_message(message["role"]):
     st.markdown(message["content"])
 
-# User Prompt Input Loop
-if prompt := st.chat_input("Apna sawal ya coding task yahan type karein..."):
+# 6. Main Interaction Loop
+if prompt := st.chat_input(
+    "Apna coding task, bug fix, SaaS architecture, ya business query yahan"
+    " type karein..."
+):
   if not api_key:
     st.error(
-        f"Pehle sidebar mein {ai_provider} ki API Key provide karna zaroori hai!"
+        f"Kripya pehle sidebar mein {ai_provider} ki API key provide karein!"
     )
   else:
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -161,11 +172,11 @@ if prompt := st.chat_input("Apna sawal ya coding task yahan type karein..."):
       st.markdown(prompt)
 
     with st.chat_message("assistant"):
-      with st.spinner(f"Connecting to {ai_provider} ({selected_model})..."):
+      with st.spinner(f"DasAi ({ai_provider} - {selected_model}) working..."):
         try:
           ai_response = ""
 
-          # --- GEMINI EXECUTION ---
+          # --- Google Gemini Execution ---
           if ai_provider == "Google Gemini":
             genai.configure(api_key=api_key)
             gemini_model = genai.GenerativeModel(
@@ -179,7 +190,7 @@ if prompt := st.chat_input("Apna sawal ya coding task yahan type karein..."):
             response = chat_session.send_message(prompt)
             ai_response = response.text
 
-          # --- OPENAI CHATGPT EXECUTION ---
+          # --- OpenAI ChatGPT Execution ---
           elif ai_provider == "OpenAI ChatGPT":
             client = openai.OpenAI(api_key=api_key)
             openai_messages = [
@@ -194,7 +205,7 @@ if prompt := st.chat_input("Apna sawal ya coding task yahan type karein..."):
             )
             ai_response = response.choices[0].message.content
 
-          # --- ANTHROPIC CLAUDE EXECUTION ---
+          # --- Anthropic Claude Execution ---
           elif ai_provider == "Anthropic Claude":
             client = anthropic.Anthropic(api_key=api_key)
             claude_messages = []
@@ -209,12 +220,12 @@ if prompt := st.chat_input("Apna sawal ya coding task yahan type karein..."):
             )
             ai_response = response.content[0].text
 
-          # Render Response
+          # Render Output with Native Code-Block Copy Buttons
           st.markdown(ai_response)
           st.session_state.messages.append(
               {"role": "assistant", "content": ai_response}
           )
 
         except Exception as e:
-          st.error(f"Execution Error with {ai_provider}: {e}")
+          st.error(f"Execution Error: {e}")
             
